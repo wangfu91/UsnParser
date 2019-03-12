@@ -15,8 +15,6 @@ namespace UsnParser
         private readonly bool _isNtfsVolume;
         private IntPtr _usnJournalRootHandle;
 
-        public static TimeSpan ElapsedTime { get; private set; }
-
         public string VolumeName { get; }
 
 
@@ -45,9 +43,6 @@ namespace UsnParser
 
             _isNtfsVolume = _driveInfo.DriveFormat.Equals("NTFS", StringComparison.OrdinalIgnoreCase);
 
-            var sw = new Stopwatch();
-            sw.Start();
-
             if (_isNtfsVolume)
             {
                 var lastError = GetRootHandle(out var rootHandle);
@@ -58,28 +53,20 @@ namespace UsnParser
                     lastError = GetVolumeSerialNumber(_driveInfo, out _);
                     if (lastError != 0)
                     {
-                        ElapsedTime = TimeSpan.FromMilliseconds(sw.ElapsedMilliseconds);
                         throw new Win32Exception(lastError);
                     }
                 }
-
                 else
                 {
-                    ElapsedTime = TimeSpan.FromMilliseconds(sw.ElapsedMilliseconds);
                     throw new Win32Exception(lastError);
                 }
             }
 
             else
             {
-                ElapsedTime = TimeSpan.FromMilliseconds(sw.ElapsedMilliseconds);
                 throw new Exception(string.Format(CultureInfo.InvariantCulture, "{0} is not an NTFS volume.", _driveInfo.Name));
             }
-
-            ElapsedTime = TimeSpan.FromMilliseconds(sw.ElapsedMilliseconds);
         }
-
-
 
 
         /// <summary>
@@ -114,9 +101,6 @@ namespace UsnParser
         public int CreateUsnJournal(ulong maxSize, ulong allocationDelta)
         {
             var lastError = (int)UsnJournalReturnCode.VOLUME_NOT_NTFS;
-
-            var sw = new Stopwatch();
-            sw.Start();
 
             if (_isNtfsVolume)
             {
@@ -154,8 +138,6 @@ namespace UsnParser
                     lastError = (int)UsnJournalReturnCode.INVALID_HANDLE_VALUE;
             }
 
-            ElapsedTime = TimeSpan.FromMilliseconds(sw.ElapsedMilliseconds);
-
             return lastError;
         }
 
@@ -190,9 +172,6 @@ namespace UsnParser
         {
             var lastError = (int)UsnJournalReturnCode.VOLUME_NOT_NTFS;
 
-            var sw = new Stopwatch();
-            sw.Start();
-
             if (_isNtfsVolume)
             {
                 if (_usnJournalRootHandle.ToInt64() != Win32Api.INVALID_HANDLE_VALUE)
@@ -218,33 +197,20 @@ namespace UsnParser
                     lastError = (int)UsnJournalReturnCode.INVALID_HANDLE_VALUE;
             }
 
-            ElapsedTime = TimeSpan.FromMilliseconds(sw.ElapsedMilliseconds);
-
             return lastError;
         }
 
 
         /// <summary>Gets the directory entries from the Master File Table on a volume.</summary>
-        public int GetUsnDirectories(out List<UsnEntry> folders)
+        public IEnumerable<UsnEntry> GetUsnDirectories(string filter = null)
         {
-            folders = EnumerateUsnEntries(true).ToList();
-
-            // Takes some time.
-            folders.Sort();
-
-            return (int)UsnJournalReturnCode.USN_JOURNAL_SUCCESS;
+            return EnumerateUsnEntries(true).ToList();
         }
 
-
         /// <summary>Gets the file entries from the Master File Table on a volume.</summary>
-        public int GetUsnFiles(string filter, out List<UsnEntry> files)
+        public IEnumerable<UsnEntry> GetUsnFiles(string filter)
         {
-            files = EnumerateUsnEntries(false, filter).ToList();
-
-            // Takes some time.
-            files.Sort();
-
-            return (int)UsnJournalReturnCode.USN_JOURNAL_SUCCESS;
+            return EnumerateUsnEntries(false, filter);
         }
 
 
@@ -369,9 +335,6 @@ namespace UsnParser
             path = null;
             var lastError = (int)UsnJournalReturnCode.VOLUME_NOT_NTFS;
 
-            var sw = new Stopwatch();
-            sw.Start();
-
             if (_isNtfsVolume)
             {
                 if (_usnJournalRootHandle.ToInt64() != Win32Api.INVALID_HANDLE_VALUE)
@@ -434,8 +397,6 @@ namespace UsnParser
                 }
             }
 
-            ElapsedTime = TimeSpan.FromMilliseconds(sw.ElapsedMilliseconds);
-
             return lastError;
         }
 
@@ -470,17 +431,12 @@ namespace UsnParser
         {
             var lastError = (int)UsnJournalReturnCode.VOLUME_NOT_NTFS;
 
-            var sw = new Stopwatch();
-            sw.Start();
-
             if (_isNtfsVolume)
             {
                 lastError = _usnJournalRootHandle.ToInt64() == Win32Api.INVALID_HANDLE_VALUE
                    ? (int)UsnJournalReturnCode.INVALID_HANDLE_VALUE
                    : QueryUsnJournal(ref usnJournalState);
             }
-
-            ElapsedTime = TimeSpan.FromMilliseconds(sw.ElapsedMilliseconds);
 
             return lastError;
         }
@@ -522,10 +478,6 @@ namespace UsnParser
             usnEntries = new List<UsnEntry>();
             newUsnState = new USN_JOURNAL_DATA_V0();
             var lastError = (int)UsnJournalReturnCode.VOLUME_NOT_NTFS;
-
-            var sw = new Stopwatch();
-            sw.Start();
-
             if (_isNtfsVolume)
             {
                 if (_usnJournalRootHandle.ToInt64() != Win32Api.INVALID_HANDLE_VALUE)
@@ -608,8 +560,6 @@ namespace UsnParser
                     lastError = (int)UsnJournalReturnCode.INVALID_HANDLE_VALUE;
             }
 
-            ElapsedTime = TimeSpan.FromMilliseconds(sw.ElapsedMilliseconds);
-
             return lastError;
         }
 
@@ -619,9 +569,6 @@ namespace UsnParser
         public bool IsUsnJournalActive()
         {
             var success = false;
-
-            var sw = new Stopwatch();
-            sw.Start();
 
             if (_isNtfsVolume)
             {
@@ -634,8 +581,6 @@ namespace UsnParser
                         success = true;
                 }
             }
-
-            ElapsedTime = TimeSpan.FromMilliseconds(sw.ElapsedMilliseconds);
 
             return success;
         }
@@ -650,15 +595,10 @@ namespace UsnParser
         {
             var usnJournalState = new USN_JOURNAL_DATA_V0();
 
-            var sw = new Stopwatch();
-            sw.Start();
-
             var success = _isNtfsVolume && _usnJournalRootHandle.ToInt64() != Win32Api.INVALID_HANDLE_VALUE &&
                    QueryUsnJournal(ref usnJournalState) == (int)UsnJournalReturnCode.USN_JOURNAL_SUCCESS &&
                    usnJournalPreviousState.UsnJournalID == usnJournalState.UsnJournalID &&
                    usnJournalPreviousState.NextUsn >= usnJournalState.NextUsn;
-
-            ElapsedTime = TimeSpan.FromMilliseconds(sw.ElapsedMilliseconds);
 
             return success;
         }
