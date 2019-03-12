@@ -228,7 +228,7 @@ namespace UsnParser
 
 
         /// <summary>Sets the number of bytes specified by 'size' of the memory associated with the argument 'ptr' to zero.</summary>
-        [DllImport("kernel32.dll", SetLastError = false, CharSet = CharSet.Unicode)]
+        [DllImport("kernel32.dll", SetLastError = false, CharSet = CharSet.Unicode, EntryPoint = "RtlZeroMemory")]
         public static extern void ZeroMemory(IntPtr ptr, int size);
 
 
