@@ -9,6 +9,7 @@ namespace UsnParser
         private const int FR_OFFSET = 8;
         private const int PFR_OFFSET = 16;
         private const int USN_OFFSET = 24;
+        private const int TIMESTAMP_OFFSET = 32;
         private const int REASON_OFFSET = 40;
         public const int FA_OFFSET = 52;
         private const int FNL_OFFSET = 56;
@@ -22,6 +23,8 @@ namespace UsnParser
         /// <summary>The 64bit USN.</summary>
         public long USN { get; }
 
+        /// <summary>The 64bit TimeStamp.</summary>
+        public long TimeStamp { get; set; }
 
         /// <summary>The 64bit File Reference Number.</summary>
         public ulong FileReferenceNumber { get; }
@@ -63,7 +66,7 @@ namespace UsnParser
             FileReferenceNumber = (ulong)Marshal.ReadInt64(ptrToUsnRecord, FR_OFFSET);
             ParentFileReferenceNumber = (ulong)Marshal.ReadInt64(ptrToUsnRecord, PFR_OFFSET);
             USN = Marshal.ReadInt64(ptrToUsnRecord, USN_OFFSET);
-
+            TimeStamp = Marshal.ReadInt64(ptrToUsnRecord, TIMESTAMP_OFFSET);
             Reason = (uint)Marshal.ReadInt32(ptrToUsnRecord, REASON_OFFSET);
 
             _fileAttributes = (uint)Marshal.ReadInt32(ptrToUsnRecord, FA_OFFSET);
