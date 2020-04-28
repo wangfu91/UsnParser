@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Security.Principal;
 
@@ -59,26 +60,47 @@ namespace UsnParser
                         UsnReasons.USN_REASON_CLOSE;
 
 
-                while (true)
+                //while (true)
+                //{
+                //    if (_cancelled) break;
+
+                //    var rtnCode = journal.GetUsnJournalEntries(journalState, reasonMask, out var usnEntries, out journalState);
+
+                //    if (rtnCode == (int)UsnJournalReturnCode.USN_JOURNAL_SUCCESS)
+                //    {
+                //        foreach (var entry in usnEntries)
+                //        {
+                //            FormatUsnEntry(journal, entry);
+                //        }
+                //    }
+                //    else
+                //    {
+                //        Console.ForegroundColor = ConsoleColor.Red;
+                //        Console.WriteLine($"GetUsnJournalEntries error: {rtnCode}, drive: {driveLetter}");
+                //        Console.ResetColor();
+                //        break;
+                //    }
+                //}
+
+
+                var usnReadState = new USN_JOURNAL_DATA_V0
                 {
-                    if (_cancelled) break;
+                    NextUsn = 0x0000000005272d88,
+                    UsnJournalID = journalState.UsnJournalID
+                };
 
-                    var rtnCode = journal.GetUsnJournalEntries(journalState, reasonMask, out var usnEntries, out journalState);
-
-                    if (rtnCode == (int)UsnJournalReturnCode.USN_JOURNAL_SUCCESS)
+                var usnEntries= new List<UsnEntry>();
+                var retCode= journal.GetUsnJournalEntries(usnReadState, reasonMask, out usnEntries, out var newUsnState);
+                if (retCode == 0)
+                {
+                    foreach (var entry in usnEntries)
                     {
-                        foreach (var entry in usnEntries)
-                        {
-                            FormatUsnEntry(journal, entry);
-                        }
+                        FormatUsnEntry(journal, entry);
                     }
-                    else
-                    {
-                        Console.ForegroundColor = ConsoleColor.Red;
-                        Console.WriteLine($"GetUsnJournalEntries error: {rtnCode}, drive: {driveLetter}");
-                        Console.ResetColor();
-                        break;
-                    }
+                }
+                else
+                {
+                    Console.WriteLine($"GetUsnJournalEntries Error: {error}");
                 }
             }
             catch (Exception ex)
@@ -125,12 +147,12 @@ namespace UsnParser
 
         public static void FormatUsnEntry(NtfsUsnJournal usnJournal, UsnEntry usnEntry)
         {
-            Console.WriteLine(string.Format(usnEntry.IsFolder ? "  Directory: {0}" : "  File: {0}", usnEntry.Name));
+            Console.WriteLine(usnEntry.IsFolder ? "  Directory: {0}" : "  File: {0}", usnEntry.Name);
 
             var lastError = usnJournal.GetPathFromFileReference(usnEntry.ParentFileReferenceNumber, out var path);
             if (lastError == (int)UsnJournalReturnCode.USN_JOURNAL_SUCCESS && null != path)
             {
-                path = string.Format("{0}{1}\\", usnJournal.VolumeName.TrimEnd('\\'), path);
+                path = $"{usnJournal.VolumeName.TrimEnd('\\')}{path}";
                 Console.WriteLine($"  Path: {path}");
             }
 

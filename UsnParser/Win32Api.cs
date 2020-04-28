@@ -28,6 +28,7 @@ namespace UsnParser
         public const uint FILE_OPEN_FOR_BACKUP_INTENT = 16384;
         public const uint FILE_OPEN_BY_FILE_ID = 8192;
         public const uint FILE_OPEN = 1;
+        public const uint FILE_OPEN_IF = 0x00000003;
 
         public const uint OBJ_CASE_INSENSITIVE = 0x40;
         //public const OBJ_KERNEL_HANDLE = 0x200;

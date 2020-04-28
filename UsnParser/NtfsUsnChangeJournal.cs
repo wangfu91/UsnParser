@@ -372,7 +372,7 @@ namespace UsnParser
 
 
                         var fOk = Win32Api.NtCreateFile(ref hFile, FileAccess.Read, ref objAttributes, ref ioStatusBlock, ref allocSize, 0,
-                           FileShare.ReadWrite, Win32Api.FILE_OPEN, Win32Api.FILE_OPEN_BY_FILE_ID | Win32Api.FILE_OPEN_FOR_BACKUP_INTENT, IntPtr.Zero, 0);
+                           FileShare.ReadWrite, Win32Api.FILE_OPEN_IF, Win32Api.FILE_OPEN_BY_FILE_ID/* | Win32Api.FILE_OPEN_FOR_BACKUP_INTENT*/, IntPtr.Zero, 0);
 
 
                         if (fOk == 0)
@@ -387,7 +387,16 @@ namespace UsnParser
                                 // The next bytes are the name.
                                 path = Marshal.PtrToStringUni(new IntPtr(buffer.ToInt64() + 4), nameLength / 2);
                             }
+                            else
+                            {
+                                // throw new Exception($"NtQueryInformationFile failed with error: 0x{fOk:X8}");
+                            }
                         }
+                        else
+                        {
+                            // throw new Exception($"NtCreateFile failed with error: {fOk:X8}");
+                        }
+
 
                         Win32Api.CloseHandle(hFile);
                         Marshal.FreeHGlobal(buffer);
