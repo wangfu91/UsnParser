@@ -17,7 +17,7 @@ namespace UsnParser
     [VersionOptionFromMember(MemberName = nameof(GetVersion))]
     internal class Program
     {
-        static void Main(string[] args)
+        private static void Main(string[] args)
         {
             CommandLineApplication.Execute<Program>(args);
         }
@@ -47,7 +47,11 @@ namespace UsnParser
                 cts.Cancel();
             };
 
-            // RequireAdministrator(console);
+            if (!HasAdministratorPrivilege())
+            {
+                console.PrintError($"You must have system administrator privileges to access the change journal of \"{Volume}\".");
+                return;
+            }
 
             try
             {
@@ -121,16 +125,11 @@ namespace UsnParser
             }
         }
 
-        private static void RequireAdministrator(IConsole console)
+        private static bool HasAdministratorPrivilege()
         {
-            using (var identity = WindowsIdentity.GetCurrent())
-            {
-                var principal = new WindowsPrincipal(identity);
-                if (!principal.IsInRole(WindowsBuiltInRole.Administrator))
-                {
-                    console.PrintError("You must have system administrator privileges to create, delete, or re-create change journals.");
-                }
-            }
+            using var identity = WindowsIdentity.GetCurrent();
+            var principal = new WindowsPrincipal(identity);
+            return principal.IsInRole(WindowsBuiltInRole.Administrator);
         }
 
         private static void PrintUsnJournalState(IConsole console, USN_JOURNAL_DATA_V0 _usnCurrentJournalState)

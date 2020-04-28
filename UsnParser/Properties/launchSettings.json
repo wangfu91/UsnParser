@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "UsnParser": {
+      "commandName": "Project",
+      "commandLineArgs": "C: -r"
+    }
+  }
+}
