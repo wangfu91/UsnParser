@@ -112,7 +112,7 @@ namespace UsnParser
             }
         }
 
-        private void MonitorRealTimeUsnJournal(IConsole console, NtfsUsnJournal journal, USN_JOURNAL_DATA_V0 usnState, string filter, bool? onlyFiles, CancellationToken token)
+        private static void MonitorRealTimeUsnJournal(IConsole console, NtfsUsnJournal journal, USN_JOURNAL_DATA_V0 usnState, string filter, bool? onlyFiles, CancellationToken token)
         {
             while (true)
             {
