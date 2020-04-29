@@ -28,10 +28,13 @@ namespace UsnParser
         public string Volume { get; set; }
 
         [Option("-f|--filter", Description = "Filter USN journal")]
-        public string Filter { get; }
+        public string Filter { get; set; }
 
         [Option("-r|--read", Description = "Read real-time USN journal")]
-        public bool Read { get; }
+        public bool Read { get; set; }
+
+        [Option("-s|--search", Description = "Search NTFS Master File Table")]
+        public bool Search { get; }
 
         private static string GetVersion()
             => Assembly.GetExecutingAssembly().GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion;
@@ -71,6 +74,10 @@ namespace UsnParser
                 if (Read)
                 {
                     ReadRealTimeUsnJournal(console, journal, usnState, Filter, cts.Token);
+                }
+                else if (Search)
+                {
+                    SearchMasterFileTable(console, journal, Filter, cts.Token);
                 }
                 else
                 {
@@ -125,6 +132,18 @@ namespace UsnParser
             }
         }
 
+        private static void SearchMasterFileTable(IConsole console, NtfsUsnJournal journal, string filter, CancellationToken token)
+        {
+            var usnEntries = journal.EnumerateUsnEntries(filter);
+
+            foreach (var entry in usnEntries)
+            {
+                if (token.IsCancellationRequested) break;
+
+                PrintUsnEntry(console, journal, entry);
+            }
+        }
+
         private static bool HasAdministratorPrivilege()
         {
             using var identity = WindowsIdentity.GetCurrent();
@@ -146,6 +165,7 @@ namespace UsnParser
         public static void PrintUsnEntry(IConsole console, NtfsUsnJournal usnJournal, UsnEntry usnEntry)
         {
             console.WriteLine();
+
             console.WriteLine($"USN:               {usnEntry.USN:X}");
             console.WriteLine(usnEntry.IsFolder
                 ? $"Directory:         {usnEntry.Name}"
@@ -155,10 +175,15 @@ namespace UsnParser
                 path = $"{usnJournal.VolumeName.TrimEnd('\\')}{path}";
                 console.WriteLine($"Parent:            {path}");
             }
-            console.WriteLine($"Time Stamp:        {DateTime.FromFileTimeUtc(usnEntry.TimeStamp).ToLocalTime()}");
+
+            if (usnEntry.TimeStamp > 0)
+                console.WriteLine($"Time Stamp:        {DateTime.FromFileTimeUtc(usnEntry.TimeStamp).ToLocalTime()}");
+
             console.WriteLine($"File Ref No:       {usnEntry.FileReferenceNumber:X}");
             console.WriteLine($"Parent FRN:        {usnEntry.ParentFileReferenceNumber:X}");
-            PrintReasonMask(console, usnEntry);
+
+            if (usnEntry.Reason > 0)
+                PrintReasonMask(console, usnEntry);
         }
 
         private static void PrintReasonMask(IConsole console, UsnEntry usnEntry)
@@ -251,7 +276,9 @@ namespace UsnParser
             if (0 != value)
                 builder.Append(" | CLOSE");
 
-            builder.Remove(0, 3);
+            if (builder.Length > 3)
+                builder.Remove(0, 3);
+
             console.WriteLine(builder.ToString());
         }
 

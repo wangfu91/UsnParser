@@ -201,35 +201,14 @@ namespace UsnParser
             return lastError;
         }
 
-
-        /// <summary>Gets the directory entries from the Master File Table on a volume.</summary>
-        public IEnumerable<UsnEntry> GetUsnDirectories(string filter = null)
-        {
-            return EnumerateUsnEntries(true).ToList();
-        }
-
-        /// <summary>Gets the file entries from the Master File Table on a volume.</summary>
-        public IEnumerable<UsnEntry> GetUsnFiles(string filter)
-        {
-            return EnumerateUsnEntries(false, filter);
-        }
-
-
         /// <summary>Returns an enumerable collection of <see cref="UsnEntry"/> entries that meet specified criteria.</summary>
-        /// <param name="onlyFolders"></param>
         /// <param name="filter">The filter.</param>
-        private IEnumerable<UsnEntry> EnumerateUsnEntries(bool? onlyFolders, string filter = null)
+        public IEnumerable<UsnEntry> EnumerateUsnEntries(string filter)
         {
             var usnState = new USN_JOURNAL_DATA_V0();
 
-            if (QueryUsnJournal(ref usnState) != (int)UsnJournalReturnCode.USN_JOURNAL_SUCCESS)
+            if (QueryUsnJournal(ref usnState) != (int) UsnJournalReturnCode.USN_JOURNAL_SUCCESS)
                 throw new Win32Exception("Failed to query the USN journal on the volume.");
-
-
-            if (string.IsNullOrWhiteSpace(filter) || filter.Equals("*", StringComparison.Ordinal))
-                filter = null;
-
-            var fileTypes = filter?.Split(' ', ',', ';');
 
             // Set up MFT_ENUM_DATA_V0 structure.
             var mftData = new MFT_ENUM_DATA_V0
@@ -253,7 +232,8 @@ namespace UsnParser
 
 
             // Gather up volume's directories.
-            while (Win32Api.DeviceIoControl(_usnJournalRootHandle, Win32Api.FSCTL_ENUM_USN_DATA, mftDataBuffer, mftDataSize, pData, pDataSize, out var outBytesReturned, IntPtr.Zero))
+            while (Win32Api.DeviceIoControl(_usnJournalRootHandle, Win32Api.FSCTL_ENUM_USN_DATA, mftDataBuffer, mftDataSize, pData, pDataSize, out var outBytesReturned,
+                IntPtr.Zero))
             {
                 var pUsnRecord = new IntPtr(pData.ToInt64() + sizeof(long));
 
@@ -262,40 +242,19 @@ namespace UsnParser
                 {
                     var usnEntry = new UsnEntry(pUsnRecord);
 
-
-                    if (null == onlyFolders)
+                    if (string.IsNullOrWhiteSpace(filter))
+                    {
                         yield return usnEntry;
-
-                    else if (usnEntry.IsFolder)
-                    {
-                        if ((bool)onlyFolders)
-                            yield return usnEntry;
                     }
-
-                    else if (!(bool)onlyFolders)
+                    else
                     {
-                        if (null == filter)
-                            yield return usnEntry;
-
-                        else
+                        var options = new GlobOptions {Evaluation = {CaseInsensitive = true}};
+                        var glob = Glob.Parse(filter, options);
+                        if (glob.IsMatch(usnEntry.Name.AsSpan()))
                         {
-                            var extension = Path.GetExtension(usnEntry.Name);
-
-                            if (!string.IsNullOrEmpty(extension))
-                                foreach (var fileType in fileTypes)
-                                {
-                                    if (fileType.Contains("*"))
-                                    {
-                                        if (extension.IndexOf(fileType.Trim('*'), StringComparison.OrdinalIgnoreCase) >= 0)
-                                            yield return usnEntry;
-                                    }
-
-                                    else if (extension.Equals("." + fileType.TrimStart('.'), StringComparison.OrdinalIgnoreCase))
-                                        yield return usnEntry;
-                                }
+                            yield return usnEntry;
                         }
                     }
-
 
                     pUsnRecord = new IntPtr(pUsnRecord.ToInt64() + usnEntry.RecordLength);
                     outBytesReturned -= usnEntry.RecordLength;
