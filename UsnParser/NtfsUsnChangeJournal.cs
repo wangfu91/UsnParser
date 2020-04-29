@@ -203,11 +203,12 @@ namespace UsnParser
 
         /// <summary>Returns an enumerable collection of <see cref="UsnEntry"/> entries that meet specified criteria.</summary>
         /// <param name="filter">The filter.</param>
-        public IEnumerable<UsnEntry> EnumerateUsnEntries(string filter)
+        /// <param name="onlyFiles">If gets only the file entries.</param>
+        public IEnumerable<UsnEntry> EnumerateUsnEntries(string filter, bool? onlyFiles)
         {
             var usnState = new USN_JOURNAL_DATA_V0();
 
-            if (QueryUsnJournal(ref usnState) != (int) UsnJournalReturnCode.USN_JOURNAL_SUCCESS)
+            if (QueryUsnJournal(ref usnState) != (int)UsnJournalReturnCode.USN_JOURNAL_SUCCESS)
                 throw new Win32Exception("Failed to query the USN journal on the volume.");
 
             // Set up MFT_ENUM_DATA_V0 structure.
@@ -232,7 +233,14 @@ namespace UsnParser
 
 
             // Gather up volume's directories.
-            while (Win32Api.DeviceIoControl(_usnJournalRootHandle, Win32Api.FSCTL_ENUM_USN_DATA, mftDataBuffer, mftDataSize, pData, pDataSize, out var outBytesReturned,
+            while (Win32Api.DeviceIoControl(
+                _usnJournalRootHandle,
+                Win32Api.FSCTL_ENUM_USN_DATA,
+                mftDataBuffer,
+                mftDataSize,
+                pData,
+                pDataSize,
+                out var outBytesReturned,
                 IntPtr.Zero))
             {
                 var pUsnRecord = new IntPtr(pData.ToInt64() + sizeof(long));
@@ -242,13 +250,24 @@ namespace UsnParser
                 {
                     var usnEntry = new UsnEntry(pUsnRecord);
 
+                    switch (onlyFiles)
+                    {
+                        case true when usnEntry.IsFolder:
+                        case false when !usnEntry.IsFolder:
+                        {
+                            pUsnRecord = new IntPtr(pUsnRecord.ToInt64() + usnEntry.RecordLength);
+                            outBytesReturned -= usnEntry.RecordLength;
+                            continue;
+                        }
+                    }
+
                     if (string.IsNullOrWhiteSpace(filter))
                     {
                         yield return usnEntry;
                     }
                     else
                     {
-                        var options = new GlobOptions {Evaluation = {CaseInsensitive = true}};
+                        var options = new GlobOptions { Evaluation = { CaseInsensitive = true } };
                         var glob = Glob.Parse(filter, options);
                         if (glob.IsMatch(usnEntry.Name.AsSpan()))
                         {
@@ -440,9 +459,9 @@ namespace UsnParser
         /// <remarks>
         /// If function returns ERROR_ACCESS_DENIED you need to run application as an Administrator.
         /// </remarks>
-        public int GetUsnJournalEntries(USN_JOURNAL_DATA_V0 previousUsnState, uint reasonMask, out List<UsnEntry> usnEntries, out USN_JOURNAL_DATA_V0 newUsnState)
+        public IEnumerable<UsnEntry> GetUsnJournalEntries(USN_JOURNAL_DATA_V0 previousUsnState, uint reasonMask, string filter, bool? onlyFiles, out USN_JOURNAL_DATA_V0 newUsnState)
         {
-            usnEntries = new List<UsnEntry>();
+            var usnEntries = new List<UsnEntry>();
             newUsnState = new USN_JOURNAL_DATA_V0();
             var lastError = (int)UsnJournalReturnCode.VOLUME_NOT_NTFS;
             if (_isNtfsVolume)
@@ -495,7 +514,30 @@ namespace UsnParser
                                         break;
                                     }
 
-                                    usnEntries.Add(usnEntry);
+                                    switch (onlyFiles)
+                                    {
+                                        case true when usnEntry.IsFolder:
+                                        case false when !usnEntry.IsFolder:
+                                        {
+                                            pUsnRecord = new IntPtr(pUsnRecord.ToInt64() + usnEntry.RecordLength);
+                                            outBytesReturned -= usnEntry.RecordLength;
+                                            continue;
+                                        }
+                                    }
+
+                                    if (string.IsNullOrWhiteSpace(filter))
+                                    {
+                                        usnEntries.Add(usnEntry);
+                                    }
+                                    else
+                                    {
+                                        var options = new GlobOptions { Evaluation = { CaseInsensitive = true } };
+                                        var glob = Glob.Parse(filter, options);
+                                        if (glob.IsMatch(usnEntry.Name.AsSpan()))
+                                        {
+                                            usnEntries.Add(usnEntry);
+                                        }
+                                    }
 
                                     pUsnRecord = new IntPtr(pUsnRecord.ToInt64() + usnEntry.RecordLength);
                                     outBytesReturned -= usnEntry.RecordLength;
@@ -527,16 +569,18 @@ namespace UsnParser
                     lastError = (int)UsnJournalReturnCode.INVALID_HANDLE_VALUE;
             }
 
-            return lastError;
+            if (lastError != (int)UsnJournalReturnCode.USN_JOURNAL_SUCCESS)
+            {
+                throw new Win32Exception(lastError, "FSCTL_READ_USN_JOURNAL failed.");
+            }
+
+            return usnEntries;
         }
 
-        public IEnumerable<UsnEntry> EnumerateUsnJournalEntries(USN_JOURNAL_DATA_V0 previousUsnState, uint reasonMask, string filter)
+        public IEnumerable<UsnEntry> ReadUsnEntries(USN_JOURNAL_DATA_V0 previousUsnState, uint reasonMask, string filter, bool? onlyFiles)
         {
             var newUsnState = new USN_JOURNAL_DATA_V0();
             var lastError = (int)UsnJournalReturnCode.VOLUME_NOT_NTFS;
-
-            if (string.IsNullOrWhiteSpace(filter) || filter.Equals("*", StringComparison.Ordinal))
-                filter = null;
 
             if (_isNtfsVolume)
             {
@@ -588,7 +632,18 @@ namespace UsnParser
                                         break;
                                     }
 
-                                    if (null == filter)
+                                    switch (onlyFiles)
+                                    {
+                                        case true when usnEntry.IsFolder:
+                                        case false when !usnEntry.IsFolder:
+                                        {
+                                            pUsnRecord = new IntPtr(pUsnRecord.ToInt64() + usnEntry.RecordLength);
+                                            outBytesReturned -= usnEntry.RecordLength;
+                                            continue;
+                                        }
+                                    }
+
+                                    if (string.IsNullOrWhiteSpace(filter))
                                     {
                                         yield return usnEntry;
                                     }
@@ -627,7 +682,6 @@ namespace UsnParser
                         Marshal.FreeHGlobal(pbData);
                     }
                 }
-
                 else
                     lastError = (int)UsnJournalReturnCode.INVALID_HANDLE_VALUE;
             }
