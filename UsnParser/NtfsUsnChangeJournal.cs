@@ -6,6 +6,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
+using DotNet.Globbing;
 
 namespace UsnParser
 {
@@ -214,7 +215,7 @@ namespace UsnParser
         }
 
 
-        /// <summary>Returns an enumerable collection of <see cref="Win32Api.UsnEntry"/> entries that meet specified criteria.</summary>
+        /// <summary>Returns an enumerable collection of <see cref="UsnEntry"/> entries that meet specified criteria.</summary>
         /// <param name="onlyFolders"></param>
         /// <param name="filter">The filter.</param>
         private IEnumerable<UsnEntry> EnumerateUsnEntries(bool? onlyFolders, string filter = null)
@@ -578,8 +579,6 @@ namespace UsnParser
             if (string.IsNullOrWhiteSpace(filter) || filter.Equals("*", StringComparison.Ordinal))
                 filter = null;
 
-            var fileTypes = filter?.Split(' ', ',', ';');
-
             if (_isNtfsVolume)
             {
                 if (_usnJournalRootHandle.ToInt64() != Win32Api.INVALID_HANDLE_VALUE)
@@ -630,32 +629,17 @@ namespace UsnParser
                                         break;
                                     }
 
-                                    //yield return usnEntry;
-
                                     if (null == filter)
                                     {
                                         yield return usnEntry;
                                     }
                                     else
                                     {
-                                        var extension = Path.GetExtension(usnEntry.Name);
-
-                                        if (!string.IsNullOrEmpty(extension))
+                                        var options = new GlobOptions { Evaluation = { CaseInsensitive = true } };
+                                        var glob = Glob.Parse(filter, options);
+                                        if (glob.IsMatch(usnEntry.Name.AsSpan()))
                                         {
-                                            foreach (var fileType in fileTypes)
-                                            {
-                                                if (fileType.Contains("*"))
-                                                {
-                                                    if (extension.IndexOf(fileType.Trim('*'),
-                                                        StringComparison.OrdinalIgnoreCase) >= 0)
-                                                        yield return usnEntry;
-                                                }
-                                                else if (extension.Equals("." + fileType.TrimStart('.'),
-                                                    StringComparison.OrdinalIgnoreCase))
-                                                {
-                                                    yield return usnEntry;
-                                                }
-                                            }
+                                            yield return usnEntry;
                                         }
                                     }
 
