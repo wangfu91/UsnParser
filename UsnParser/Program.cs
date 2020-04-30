@@ -153,7 +153,7 @@ namespace UsnParser
             {
                 if (token.IsCancellationRequested) break;
 
-                PrintUsnEntry(console, journal, entry);
+                PrintEntryPath(console, journal, entry);
             }
         }
 
@@ -175,6 +175,20 @@ namespace UsnParser
             builder.AppendLine($"Max Size:          {_usnCurrentJournalState.MaximumSize:X}");
             builder.AppendLine($"Allocation Delta:  {_usnCurrentJournalState.AllocationDelta:X}");
             console.WriteLine(builder);
+        }
+
+        public static void PrintEntryPath(IConsole console, NtfsUsnJournal usnJournal, UsnEntry usnEntry)
+        {
+            var builder = new StringBuilder();
+            builder.AppendLine();
+            builder.AppendLine($"Name:              {usnEntry.Name}");
+            builder.AppendLine($"IsFolder:          {usnEntry.IsFolder}");
+            if (usnJournal.TryGetPathFromFileId(usnEntry.ParentFileReferenceNumber, out var path))
+            {
+                path = $"{usnJournal.VolumeName.TrimEnd('\\')}{path}";
+                builder.AppendLine($"Folder:            {path}");
+            }
+            console.Write(builder);
         }
 
         public static void PrintUsnEntry(IConsole console, NtfsUsnJournal usnJournal, UsnEntry usnEntry)
