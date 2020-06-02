@@ -12,13 +12,16 @@ Parse NTFS USN Journal.
 Usage: NtfsJournal [options] <Volume>
 
 Arguments:
-  Volume        Volume pathname. <Required>
+  Volume          Volume pathname. <Required>
 
 Options:
-  --version     Show version information
-  -?|-h|--help  Show help information
-  -f|--filter   Filter USN journal
-  -r|--read     Read real-time USN journal
+  --version       Show version information
+  -?|-h|--help    Show help information
+  -m|--monitor    Monitor real-time USN journal
+  -s|--search     Search NTFS Master File Table
+  -f|--filter     Filter USN journal by entry name
+  -fo|--FileOnly  Get only the file entries
+  -do|--DirOnly   Get only the directory entries
 ```
 
 ### Example
