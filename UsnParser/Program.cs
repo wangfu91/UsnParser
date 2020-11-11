@@ -56,6 +56,12 @@ namespace UsnParser
                 cts.Cancel();
             };
 
+            if(!OperatingSystem.IsWindows())
+            {
+                console.PrintError($"This tool only support Windows OS.");
+                return;
+            }
+
             if (!HasAdministratorPrivilege())
             {
                 console.PrintError($"You must have system administrator privileges to access the change journal of \"{Volume}\".");
