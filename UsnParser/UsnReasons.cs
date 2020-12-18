@@ -2,6 +2,7 @@
 {
     public static class UsnReasons
     {
+        // From winioctl.h
         public const uint USN_REASON_DATA_OVERWRITE = 0x00000001;
         public const uint USN_REASON_DATA_EXTEND = 0x00000002;
         public const uint USN_REASON_DATA_TRUNCATION = 0x00000004;
