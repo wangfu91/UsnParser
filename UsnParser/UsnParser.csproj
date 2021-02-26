@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>net5.0</TargetFramework>
+    <TargetFramework>net5.0-windows</TargetFramework>
     <PackAsTool>true</PackAsTool>
     <ToolCommandName>usn-dump</ToolCommandName>
     <Version>0.1.0</Version>

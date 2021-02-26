@@ -3,7 +3,6 @@ using System.ComponentModel.DataAnnotations;
 using System.IO;
 using System.Reflection;
 using System.Security.Principal;
-using System.Text;
 using System.Threading;
 using McMaster.Extensions.CommandLineUtils;
 using UsnParser.Extensions;
@@ -58,7 +57,7 @@ namespace UsnParser
                 cts.Cancel();
             };
 
-            if(!OperatingSystem.IsWindows())
+            if (!OperatingSystem.IsWindows())
             {
                 console.PrintError($"This tool only support Windows OS.");
                 return;
@@ -174,55 +173,51 @@ namespace UsnParser
 
         private static void PrintUsnJournalState(IConsole console, USN_JOURNAL_DATA_V0 usnData)
         {
-            var builder = new StringBuilder();
-            builder.AppendLine($"Journal ID:        {usnData.UsnJournalID:X}");
-            builder.AppendLine($"First USN:         {usnData.FirstUsn:X}");
-            builder.AppendLine($"Next USN:          {usnData.NextUsn:X}");
-            builder.AppendLine($"Lowest Valid USN:  {usnData.LowestValidUsn:X}");
-            builder.AppendLine($"Max USN:           {usnData.MaxUsn:X}");
-            builder.AppendLine($"Max Size:          {usnData.MaximumSize:X}");
-            builder.AppendLine($"Allocation Delta:  {usnData.AllocationDelta:X}");
-            console.WriteLine(builder);
+            console.WriteLine($"{"Journal ID:",-20}{usnData.UsnJournalID:X}");
+            console.WriteLine($"{"First USN:",-20}{usnData.FirstUsn:X}");
+            console.WriteLine($"{"Next USN:",-20}{usnData.NextUsn:X}");
+            console.WriteLine($"{"Lowest Valid USN:",-20}{usnData.LowestValidUsn:X}");
+            console.WriteLine($"{"Max USN:",-20}{usnData.MaxUsn:X}");
+            console.WriteLine($"{"Max Size:",-20}{usnData.MaximumSize:X}");
+            console.WriteLine($"{"Allocation Delta:",-20}{usnData.AllocationDelta:X}");
         }
 
         public static void PrintEntryPath(IConsole console, UsnJournal usnJournal, UsnEntry usnEntry)
         {
-            var builder = new StringBuilder();
-            builder.AppendLine();
-            builder.AppendLine($"Name:              {usnEntry.Name}");
-            builder.AppendLine($"IsFolder:          {usnEntry.IsFolder}");
+            console.WriteLine();
+            console.WriteLine($"Name:{usnEntry.Name,-20}");
+            console.WriteLine($"IsFolder:{usnEntry.IsFolder,-20}");
             if (usnJournal.TryGetPathFromFileId(usnEntry.ParentFileReferenceNumber, out var path))
             {
                 path = $"{usnJournal.VolumeName.TrimEnd('\\')}{path}";
-                builder.AppendLine($"Folder:            {path}");
+                console.WriteLine($"Folder:{path,-20}");
             }
-            console.Write(builder);
         }
 
         public static void PrintUsnEntry(IConsole console, UsnJournal usnJournal, UsnEntry usnEntry)
         {
-            var builder = new StringBuilder();
-            builder.AppendLine();
-            builder.AppendLine($"USN:\t\t{usnEntry.USN:X}");
-            builder.AppendLine(usnEntry.IsFolder
-                ? $"Directory:\t\t{usnEntry.Name}"
-                : $"File:\t\t{usnEntry.Name}");
+            console.WriteLine();
+            console.WriteLine($"{"USN:",-20}{usnEntry.USN:X}");
+            console.WriteLine(usnEntry.IsFolder
+                ? $"{"Directory:",-20}{usnEntry.Name}"
+                : $"{"File:",-20}{usnEntry.Name}");
             if (usnJournal.TryGetPathFromFileId(usnEntry.ParentFileReferenceNumber, out var path))
             {
                 path = $"{usnJournal.VolumeName.TrimEnd('\\')}{path}";
-                builder.AppendLine($"Parent:\t\t{path}");
+                console.WriteLine($"{"Parent:",-20}{path}");
             }
 
             if (usnEntry.TimeStamp > 0)
-                builder.AppendLine($"Time Stamp:\t\t{DateTime.FromFileTimeUtc(usnEntry.TimeStamp).ToLocalTime()}");
+                console.WriteLine($"{"Time Stamp:",-20}{DateTime.FromFileTimeUtc(usnEntry.TimeStamp).ToLocalTime()}");
 
-            builder.AppendLine($"File Ref No:\t\t{usnEntry.FileReferenceNumber:X}");
-            builder.AppendLine($"Parent FRN:\t\t{usnEntry.ParentFileReferenceNumber:X}");
+            console.WriteLine($"{"File ID:",-20}{usnEntry.FileReferenceNumber:X}");
+            console.WriteLine($"{"Parent FILE ID:",-20}{usnEntry.ParentFileReferenceNumber:X}");
 
             if (usnEntry.Reason > 0)
-                builder.AppendLine($"Reason:\t\t{(UsnReason)usnEntry.Reason}");
-
-            console.WriteLine(builder);
+            {
+                var reason = ((UsnReason)usnEntry.Reason).ToString().Replace(',', '|');
+                console.WriteLine($"{"Reason:",-20}{reason}");
+            }
         }
     }
 }
