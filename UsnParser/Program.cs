@@ -11,9 +11,9 @@ using UsnParser.Native;
 namespace UsnParser
 {
     [Command(
-        Name = "NtfsJournal",
+        Name = "UsnParser",
         FullName = "NTFS USN Journal parser",
-        Description = "Parse NTFS USN Journal.")]
+        Description = "A command utility to monitoring and filtering NTFS USN Journal.")]
     [HelpOption("-?|-h|--help")]
     [VersionOptionFromMember(MemberName = nameof(GetVersion))]
     internal class Program
