@@ -4,7 +4,7 @@
 
 ## Usage
 
-```bash
+```
 NTFS USN Journal parser 0.1.0
 
 A command utility to monitor and filter NTFS USN Journals.
