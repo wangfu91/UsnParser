@@ -1,4 +1,4 @@
-﻿namespace UsnParser
+﻿namespace UsnParser.Native
 {
     public static class UsnReasons
     {

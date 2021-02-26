@@ -1,6 +1,6 @@
 ﻿using System.Runtime.InteropServices;
 
-namespace UsnParser
+namespace UsnParser.Native
 {
     /// <summary>Contains information defining the boundaries for and starting place of an enumeration of update sequence number (USN) change journal records.
     /// It is used as the input buffer for the FSCTL_ENUM_USN_DATA control code.</summary>

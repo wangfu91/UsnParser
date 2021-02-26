@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Runtime.InteropServices;
 
-namespace UsnParser
+namespace UsnParser.Native
 {
     /// <summary>The UNICODE_STRING structure is used to define Unicode strings.</summary>
     [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]

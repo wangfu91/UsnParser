@@ -2,7 +2,7 @@
 using System.IO;
 using System.Runtime.InteropServices;
 
-namespace UsnParser
+namespace UsnParser.Native
 {
     public static partial class Win32Api
     {

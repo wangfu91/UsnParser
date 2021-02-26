@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Runtime.InteropServices;
 
-namespace UsnParser
+namespace UsnParser.Native
 {
     /// <summary>The 32bit File Name Length, the 32bit File Name Offset and the File Name.</summary>
     public class UsnEntry : IComparable<UsnEntry>

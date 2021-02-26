@@ -1,7 +1,7 @@
 ﻿using System.Runtime.InteropServices;
 using System.Runtime.InteropServices.ComTypes;
 
-namespace UsnParser
+namespace UsnParser.Native
 {
     /// <summary>
     /// By Handle File Information structure, contains File Attributes (32bits), Creation Time(FILETIME),

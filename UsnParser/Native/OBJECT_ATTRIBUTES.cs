@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Runtime.InteropServices;
 
-namespace UsnParser
+namespace UsnParser.Native
 {
     /// <summary>The OBJECT_ATTRIBUTES structure specifies attributes that can be applied to objects or object handles by routines that create objects and/or return handles to objects.</summary>
     [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]

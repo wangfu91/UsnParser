@@ -1,6 +1,6 @@
 ﻿using System.Runtime.InteropServices;
 
-namespace UsnParser
+namespace UsnParser.Native
 {
     /// <summary>A driver sets an IRP's I/O status block to indicate the final status of an I/O request, before calling IoCompleteRequest for the IRP.</summary>
     [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]

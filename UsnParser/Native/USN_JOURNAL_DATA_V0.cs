@@ -1,6 +1,6 @@
 ﻿using System.Runtime.InteropServices;
 
-namespace UsnParser
+namespace UsnParser.Native
 {
     /// <summary>Represents an update sequence number (USN) change journal, its records, and its capacity. This structure is the output buffer for the FSCTL_QUERY_USN_JOURNAL control code.</summary>
     /// <remarks>Prior to Windows 8 and Windows Server 2012 this structure was named USN_JOURNAL_DATA.</remarks>

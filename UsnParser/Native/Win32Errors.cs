@@ -1,4 +1,4 @@
-﻿namespace UsnParser
+﻿namespace UsnParser.Native
 {
     public enum Win32Errors
     {

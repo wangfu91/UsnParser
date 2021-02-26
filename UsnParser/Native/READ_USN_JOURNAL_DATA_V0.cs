@@ -1,6 +1,6 @@
 ﻿using System.Runtime.InteropServices;
 
-namespace UsnParser
+namespace UsnParser.Native
 {
     /// <summary>Contains information defining a set of update sequence number (USN) change journal records to return to the calling process.
     /// It is used by the FSCTL_QUERY_USN_JOURNAL and FSCTL_READ_USN_JOURNAL control codes.</summary>

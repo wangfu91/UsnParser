@@ -1,6 +1,6 @@
 ﻿using System.Runtime.InteropServices;
 
-namespace UsnParser
+namespace UsnParser.Native
 {
     /// <summary>Contains information on the deletion of an update sequence number (USN) change journal using the FSCTL_DELETE_USN_JOURNAL control code.</summary>
     [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]

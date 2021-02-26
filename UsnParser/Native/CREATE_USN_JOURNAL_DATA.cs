@@ -1,6 +1,6 @@
 ﻿using System.Runtime.InteropServices;
 
-namespace UsnParser
+namespace UsnParser.Native
 {
     /// <summary>Contains information that describes an update sequence number (USN) change journal.</summary>
     [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
