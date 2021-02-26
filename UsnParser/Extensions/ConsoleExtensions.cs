@@ -1,7 +1,7 @@
 ﻿using System;
 using McMaster.Extensions.CommandLineUtils;
 
-namespace UsnParser
+namespace UsnParser.Extensions
 {
     internal static class ConsoleExtensions
     {

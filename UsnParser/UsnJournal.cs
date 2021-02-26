@@ -10,7 +10,7 @@ using DotNet.Globbing;
 
 namespace UsnParser
 {
-    public class NtfsUsnJournal : IDisposable
+    public class UsnJournal : IDisposable
     {
         private readonly DriveInfo _driveInfo;
         private readonly bool _isNtfsVolume;
@@ -25,7 +25,7 @@ namespace UsnParser
         /// <remarks>An exception thrown if the volume is not an NTFS volume or if GetRootHandle() or GetVolumeSerialNumber() functions fail. 
         /// Each public method checks to see if the volume is NTFS and if the _usnJournalRootHandle is valid.
         /// If these two conditions aren't met, then the public function will return a UsnJournalReturnCode  error.</remarks>
-        public NtfsUsnJournal(string drive)
+        public UsnJournal(string drive)
             : this(new DriveInfo(drive))
         {
         }
@@ -37,7 +37,7 @@ namespace UsnParser
         /// <remarks>An exception thrown if the volume is not an NTFS volume or if GetRootHandle() or GetVolumeSerialNumber() functions fail. 
         /// Each public method checks to see if the volume is NTFS and if the _usnJournalRootHandle is valid.
         /// If these two conditions aren't met, then the public function will return a UsnJournalReturnCode  error.</remarks>
-        public NtfsUsnJournal(DriveInfo driveInfo)
+        public UsnJournal(DriveInfo driveInfo)
         {
             _driveInfo = driveInfo;
             VolumeName = driveInfo.Name;
@@ -547,7 +547,7 @@ namespace UsnParser
                             else
                             {
                                 var lastWin32Error = Marshal.GetLastWin32Error();
-                                if (lastWin32Error == (int)GetLastErrorEnum.ERROR_HANDLE_EOF)
+                                if (lastWin32Error == (int)Win32Errors.ERROR_HANDLE_EOF)
                                     lastError = (int)UsnJournalReturnCode.USN_JOURNAL_SUCCESS;
 
                                 break;
@@ -665,7 +665,7 @@ namespace UsnParser
                             else
                             {
                                 var lastWin32Error = Marshal.GetLastWin32Error();
-                                if (lastWin32Error == (int)GetLastErrorEnum.ERROR_HANDLE_EOF)
+                                if (lastWin32Error == (int)Win32Errors.ERROR_HANDLE_EOF)
                                     lastError = (int)UsnJournalReturnCode.USN_JOURNAL_SUCCESS;
 
                                 break;
@@ -790,7 +790,7 @@ namespace UsnParser
 
         #region Disposable Members
 
-        ~NtfsUsnJournal()
+        ~UsnJournal()
         {
             Dispose(false);
         }

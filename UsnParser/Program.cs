@@ -6,6 +6,7 @@ using System.Security.Principal;
 using System.Text;
 using System.Threading;
 using McMaster.Extensions.CommandLineUtils;
+using UsnParser.Extensions;
 
 namespace UsnParser
 {
@@ -86,7 +87,7 @@ namespace UsnParser
             {
                 var driveInfo = new DriveInfo(Volume);
 
-                var journal = new NtfsUsnJournal(driveInfo);
+                var journal = new UsnJournal(driveInfo);
                 var usnState = new USN_JOURNAL_DATA_V0();
                 var retCode = journal.GetUsnJournalState(ref usnState);
                 if (retCode != 0)
@@ -118,7 +119,7 @@ namespace UsnParser
             }
         }
 
-        private static void MonitorRealTimeUsnJournal(IConsole console, NtfsUsnJournal journal, USN_JOURNAL_DATA_V0 usnState, string filter, bool? onlyFiles, CancellationToken token)
+        private static void MonitorRealTimeUsnJournal(IConsole console, UsnJournal journal, USN_JOURNAL_DATA_V0 usnState, string filter, bool? onlyFiles, CancellationToken token)
         {
             while (true)
             {
@@ -133,7 +134,7 @@ namespace UsnParser
             }
         }
 
-        private static void ReadAllUsnJournals(IConsole console, NtfsUsnJournal journal, ulong usnJournalId, string filter, bool? onlyFiles, CancellationToken token)
+        private static void ReadAllUsnJournals(IConsole console, UsnJournal journal, ulong usnJournalId, string filter, bool? onlyFiles, CancellationToken token)
         {
             var usnReadState = new USN_JOURNAL_DATA_V0
             {
@@ -151,7 +152,7 @@ namespace UsnParser
             }
         }
 
-        private static void SearchMasterFileTable(IConsole console, NtfsUsnJournal journal, string filter, bool? onlyFiles, CancellationToken token)
+        private static void SearchMasterFileTable(IConsole console, UsnJournal journal, string filter, bool? onlyFiles, CancellationToken token)
         {
             var usnEntries = journal.EnumerateUsnEntries(filter, onlyFiles);
 
@@ -183,7 +184,7 @@ namespace UsnParser
             console.WriteLine(builder);
         }
 
-        public static void PrintEntryPath(IConsole console, NtfsUsnJournal usnJournal, UsnEntry usnEntry)
+        public static void PrintEntryPath(IConsole console, UsnJournal usnJournal, UsnEntry usnEntry)
         {
             var builder = new StringBuilder();
             builder.AppendLine();
@@ -197,7 +198,7 @@ namespace UsnParser
             console.Write(builder);
         }
 
-        public static void PrintUsnEntry(IConsole console, NtfsUsnJournal usnJournal, UsnEntry usnEntry)
+        public static void PrintUsnEntry(IConsole console, UsnJournal usnJournal, UsnEntry usnEntry)
         {
             var builder = new StringBuilder();
             builder.AppendLine();

@@ -1,6 +1,6 @@
 ﻿namespace UsnParser
 {
-    public enum GetLastErrorEnum
+    public enum Win32Errors
     {
         INVALID_HANDLE_VALUE = -1,
         ERROR_SUCCESS = 0,
