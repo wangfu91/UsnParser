@@ -2,7 +2,7 @@
   "profiles": {
     "UsnParser": {
       "commandName": "Project",
-      "commandLineArgs": "-s -f README.md -fo C:"
+      "commandLineArgs": "-m -fo C:"
     }
   }
 }
