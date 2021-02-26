@@ -185,12 +185,12 @@ namespace UsnParser
         public static void PrintEntryPath(IConsole console, UsnJournal usnJournal, UsnEntry usnEntry)
         {
             console.WriteLine();
-            console.WriteLine($"Name:{usnEntry.Name,-20}");
-            console.WriteLine($"IsFolder:{usnEntry.IsFolder,-20}");
+            console.WriteLine($"{"Name:",-20}{usnEntry.Name}");
+            console.WriteLine($"{"IsFolder:",-20}{usnEntry.IsFolder}");
             if (usnJournal.TryGetPathFromFileId(usnEntry.ParentFileReferenceNumber, out var path))
             {
                 path = $"{usnJournal.VolumeName.TrimEnd('\\')}{path}";
-                console.WriteLine($"Folder:{path,-20}");
+                console.WriteLine($"{"Parent:",-20}{path}");
             }
         }
 
