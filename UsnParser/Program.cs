@@ -58,7 +58,7 @@ namespace UsnParser
                 cts.Cancel();
             };
 
-            if(!OperatingSystem.IsWindows())
+            if (!OperatingSystem.IsWindows())
             {
                 console.PrintError($"This tool only support Windows OS.");
                 return;
@@ -221,6 +221,9 @@ namespace UsnParser
 
             if (usnEntry.Reason > 0)
                 builder.AppendLine($"Reason:\t\t{(UsnReason)usnEntry.Reason}");
+
+            if (usnEntry.SourceInfo > 0)
+                builder.AppendLine($"SourceInfo:\t\t{(UsnSource)usnEntry.SourceInfo}");
 
             console.WriteLine(builder);
         }

@@ -11,6 +11,8 @@ namespace UsnParser.Native
         private const int USN_OFFSET = 24;
         private const int TIMESTAMP_OFFSET = 32;
         private const int REASON_OFFSET = 40;
+        private const int SOURCE_INFO_OFFSET = 44;
+        private const int SECURITY_ID_OFFSET = 48;
         public const int FA_OFFSET = 52;
         private const int FNL_OFFSET = 56;
         private const int FN_OFFSET = 58;
@@ -37,6 +39,9 @@ namespace UsnParser.Native
         /// <summary>The 32bit Reason Code.</summary>
         public uint Reason { get; }
 
+        public uint SourceInfo { get; }
+
+        public uint SecurityId { get; }
 
         /// <summary>The 32bit Reason Code.</summary>
         public string Name { get; }
@@ -68,6 +73,8 @@ namespace UsnParser.Native
             USN = Marshal.ReadInt64(ptrToUsnRecord, USN_OFFSET);
             TimeStamp = Marshal.ReadInt64(ptrToUsnRecord, TIMESTAMP_OFFSET);
             Reason = (uint)Marshal.ReadInt32(ptrToUsnRecord, REASON_OFFSET);
+            SourceInfo = (uint)Marshal.ReadInt32(ptrToUsnRecord, SOURCE_INFO_OFFSET);
+            SecurityId = (uint)Marshal.ReadInt32(ptrToUsnRecord, SECURITY_ID_OFFSET);
 
             _fileAttributes = (uint)Marshal.ReadInt32(ptrToUsnRecord, FA_OFFSET);
 
