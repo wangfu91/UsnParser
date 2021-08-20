@@ -1,15 +1,15 @@
 # NTFS USN Parser
 
- A simple tool written in C# to monitor and filter NTFS Change Journals.
+ A command utility to monitor and filter NTFS USN Journals.
 
 ## Usage
 
-```bash
-NTFS USN Journal parser 1.0.0
+```
+NTFS USN Journal parser 0.1.0
 
-Parse NTFS USN Journal.
+A command utility to monitor and filter NTFS USN Journals.
 
-Usage: NtfsJournal [options] <Volume>
+Usage: UsnParser [options] <Volume>
 
 Arguments:
   Volume          Volume pathname. <Required>
@@ -27,22 +27,28 @@ Options:
 ### Example
 
 ```bash
-# Print all the USN records of txt files in volume D.
-UsnParser -f *.txt D: 
+# Search Master File Table of volume C, print out all paths who's file name is "Readme.md"
+UsnParser -s -f "Readme.md" C: 
 ```
 
 ```bash
-# Read realtime USN reacords of volume D.
-Usn Parser -r D: 
+# Print out all the USN records of file "Readme.md" in volume C.
+UsnParser -f "Readme.md" C: 
 ```
 
-```c
-# Read realtime USN reacords of volume D, only print out txt files whose name starts with "abc".
-Usn Parser -r D: -f abc*.txt 
+```bash
+# Monitor realtime USN reacords of volume C.
+UsnParser -m C: 
 ```
 
-## Third party notices
+```bash
+# Monitor realtime USN reacords of volume C, only print out txt files whose name starts with "abc".
+UsnParser -r C: -f abc*.txt 
+```
+
+## Dependencies 
 
 * [DotNet.Glob](https://github.com/dazinator/DotNet.Glob)
 
 * [McMaster.Extensions.CommandLineUtils](https://github.com/natemcmaster/CommandLineUtils)
+
