@@ -5,7 +5,7 @@
 ## Usage
 
 ```
-NTFS USN Journal parser 0.1.0
+NTFS USN Journal parser 0.1.1
 
 A command utility to monitor and filter NTFS USN Journals.
 

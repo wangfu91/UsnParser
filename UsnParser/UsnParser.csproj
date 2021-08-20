@@ -4,8 +4,8 @@
 		<OutputType>Exe</OutputType>
 		<TargetFramework>net6.0-windows7.0</TargetFramework>
 		<PackAsTool>true</PackAsTool>
-		<ToolCommandName>usn-dump</ToolCommandName>
-		<Version>0.1.0</Version>
+		<ToolCommandName>usn-parser</ToolCommandName>
+		<Version>0.1.1</Version>
 		<PublishTrimmed>true</PublishTrimmed>
 		<TrimMode>link</TrimMode>
 		<PublishSingleFile>true</PublishSingleFile>
