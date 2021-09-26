@@ -1,6 +1,9 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using System;
+using System.ComponentModel.DataAnnotations;
+using System.IO;
 using System.Reflection;
 using System.Security.Principal;
+using System.Threading;
 using McMaster.Extensions.CommandLineUtils;
 using UsnParser.Extensions;
 using UsnParser.Native;
@@ -93,9 +96,7 @@ namespace UsnParser
                     return;
                 }
 
-#if DEBUG
                 PrintUsnJournalState(console, usnState);
-#endif
 
                 if (Read)
                 {
@@ -205,22 +206,16 @@ namespace UsnParser
             }
 
             if (usnEntry.TimeStamp > 0)
-                console.WriteLine($"{"Time Stamp:",-20}{DateTime.FromFileTimeUtc(usnEntry.TimeStamp).ToLocalTime()}");
+                console.WriteLine($"{"Timestamp:",-20}{DateTime.FromFileTimeUtc(usnEntry.TimeStamp).ToLocalTime()}");
 
             console.WriteLine($"{"File ID:",-20}{usnEntry.FileReferenceNumber:X}");
-            console.WriteLine($"{"Parent FILE ID:",-20}{usnEntry.ParentFileReferenceNumber:X}");
+            console.WriteLine($"{"Parent File ID:",-20}{usnEntry.ParentFileReferenceNumber:X}");
 
-            if (usnEntry.Reason > 0)
-            {
-                var reason = ((UsnReason)usnEntry.Reason).ToString().Replace(',', '|');
-                console.WriteLine($"{"Reason:",-20}{reason}");
-            }
+            var reason = ((UsnReason)usnEntry.Reason).ToString().Replace(',', '|');
+            console.WriteLine($"{"Reason:",-20}{reason}");
 
-            if (usnEntry.SourceInfo > 0)
-            {
-                var sourceInfo = ((UsnSource)usnEntry.SourceInfo).ToString().Replace(',', '|');
-                console.WriteLine($"{"Source Info:",-20}{sourceInfo}");
-            }
+            var sourceInfo = ((UsnSource)usnEntry.SourceInfo).ToString().Replace(',', '|');
+            console.WriteLine($"{"Source Info:",-20}{sourceInfo}");
         }
     }
 }

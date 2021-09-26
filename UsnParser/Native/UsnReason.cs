@@ -5,6 +5,8 @@ namespace UsnParser.Native
     [Flags]
     public enum UsnReason : uint
     {
+        NONE = 0x00000000,
+
         // From winioctl.h
         DATA_OVERWRITE = 0x00000001,
         DATA_EXTEND = 0x00000002,
