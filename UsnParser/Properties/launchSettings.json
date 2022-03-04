@@ -2,7 +2,7 @@
   "profiles": {
     "UsnParser": {
       "commandName": "Project",
-      "commandLineArgs": "monitor c:"
+      "commandLineArgs": "monitor D: -fo test"
     }
   }
 }

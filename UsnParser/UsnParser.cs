@@ -28,7 +28,7 @@ namespace UsnParser
 
         private int OnExecute(CommandLineApplication app)
         {
-            // this shows help even if the --help option isn't specified
+            // This shows help even if the --help option isn't specified
             app.ShowHelp();
             return 1;
         }
@@ -66,42 +66,65 @@ namespace UsnParser
 
         public USN_JOURNAL_DATA_V0 UsnState { get; private set; }
 
-        protected virtual int OnExecute(CommandLineApplication app)
+        protected abstract int OnExecute(CommandLineApplication app);
+
+        protected int ExecuteCommand(Func<int> op)
         {
             var console = PhysicalConsole.Singleton;
 
-            var cts = new CancellationTokenSource();
-            Token = cts.Token;
-
-            console.CancelKeyPress += (o, e) =>
+            try
             {
-                console.WriteLine("Keyboard interrupt, exiting...");
-                cts.Cancel();
-            };
+                var cts = new CancellationTokenSource();
+                Token = cts.Token;
 
-            if (!OperatingSystem.IsWindows())
+                console.CancelKeyPress += (o, e) =>
+                {
+                    console.WriteLine("Keyboard interrupt, exiting...");
+                    cts.Cancel();
+                };
+
+                if (!OperatingSystem.IsWindows())
+                {
+                    console.PrintError($"This tool only support Windows, since it used NTFS specific features.");
+                    return -1;
+                }
+
+                var driveInfo = new DriveInfo(Volume);
+                Journal = new UsnJournal(driveInfo);
+                using (Journal)
+                {
+                    var usnState = new USN_JOURNAL_DATA_V0();
+                    var retCode = Journal.GetUsnJournalState(ref usnState);
+                    if (retCode != 0)
+                    {
+                        console.PrintError($"FSCTL_QUERY_USN_JOURNAL failed with error: {retCode}");
+                        return -1;
+                    }
+
+                    UsnState = usnState;
+#if DEBUG
+                    ConsoleUtils.PrintUsnJournalState(console, UsnState);
+#endif
+
+                    op();
+
+                    return 0;
+                }
+            }
+            catch (Exception ex)
             {
-                console.PrintError($"This tool only support Windows, since it used NTFS specific features.");
+                console.PrintError(ex.Message);
+
+                if (ex is Win32Exception win32Ex && win32Ex.NativeErrorCode == (int)Win32Errors.ERROR_ACCESS_DENIED && !HasAdministratorPrivilege())
+                {
+                    console.PrintError($"You need system administrator privileges to access the USN journal of {Volume.ToUpper()}.");
+                }
+
                 return -1;
             }
-
-            var driveInfo = new DriveInfo(Volume);
-            Journal = new UsnJournal(driveInfo);
-            var usnState = new USN_JOURNAL_DATA_V0();
-            var retCode = Journal.GetUsnJournalState(ref usnState);
-            if (retCode != 0)
-            {
-                console.PrintError($"FSCTL_QUERY_USN_JOURNAL failed with error: {retCode}");
-                return -1;
-            }
-
-            UsnState = usnState;
-            ConsoleUtils.PrintUsnJournalState(console, UsnState);
-
-            return 0;
         }
 
-        protected static bool HasAdministratorPrivilege()
+        private static bool HasAdministratorPrivilege()
         {
             using var identity = WindowsIdentity.GetCurrent();
             var principal = new WindowsPrincipal(identity);
@@ -119,27 +142,11 @@ namespace UsnParser
 
         protected override int OnExecute(CommandLineApplication app)
         {
-            var console = PhysicalConsole.Singleton;
-
-            try
+            return ExecuteCommand(() =>
             {
-                base.OnExecute(app);
-
-                MonitorRealTimeUsnJournal(console, Journal, UsnState, Keyword, FilterOption, Token);
-
+                MonitorRealTimeUsnJournal(PhysicalConsole.Singleton, Journal, UsnState, Keyword, FilterOption, Token);
                 return 0;
-            }
-            catch (Exception ex)
-            {
-                console.PrintError(ex.Message);
-
-                if (ex is Win32Exception win32Ex && win32Ex.NativeErrorCode == Constants.ERROR_ACCESS_DENIED && !HasAdministratorPrivilege())
-                {
-                    console.PrintError($"You need system administrator privileges to access the USN journal of {Volume.ToUpper()}.");
-                }
-
-                return -1;
-            }
+            });
         }
 
         private static void MonitorRealTimeUsnJournal(IConsole console, UsnJournal journal, USN_JOURNAL_DATA_V0 usnState, string keyword, FilterOption filterOption, CancellationToken token)
@@ -163,22 +170,11 @@ namespace UsnParser
     {
         protected override int OnExecute(CommandLineApplication app)
         {
-
-            var console = PhysicalConsole.Singleton;
-
-            try
+            return ExecuteCommand(() =>
             {
-                base.OnExecute(app);
-
-                SearchMasterFileTable(console, Journal, Keyword, FilterOption, Token);
-
+                SearchMasterFileTable(PhysicalConsole.Singleton, Journal, Keyword, FilterOption, Token);
                 return 0;
-            }
-            catch (Exception ex)
-            {
-                console.PrintError(ex.Message);
-                return -1;
-            }
+            });
         }
 
         private static void SearchMasterFileTable(IConsole console, UsnJournal journal, string keyword, FilterOption filterOption, CancellationToken token)
@@ -199,21 +195,11 @@ namespace UsnParser
     {
         protected override int OnExecute(CommandLineApplication app)
         {
-            var console = PhysicalConsole.Singleton;
-
-            try
+            return ExecuteCommand(() =>
             {
-                base.OnExecute(app);
-
-                ReadHistoryUsnJournals(console, Journal, UsnState.UsnJournalID, Keyword, FilterOption, Token);
-
+                ReadHistoryUsnJournals(PhysicalConsole.Singleton, Journal, UsnState.UsnJournalID, Keyword, FilterOption, Token);
                 return 0;
-            }
-            catch (Exception ex)
-            {
-                console.PrintError(ex.Message);
-                return -1;
-            }
+            });
         }
 
         private static void ReadHistoryUsnJournals(IConsole console, UsnJournal journal, ulong usnJournalId, string keyword, FilterOption filterOption, CancellationToken token)

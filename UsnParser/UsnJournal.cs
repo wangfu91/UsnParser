@@ -1,12 +1,10 @@
-﻿using System;
+﻿using DotNet.Globbing;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
-using System.Diagnostics;
 using System.Globalization;
 using System.IO;
-using System.Linq;
 using System.Runtime.InteropServices;
-using DotNet.Globbing;
 using UsnParser.Native;
 
 namespace UsnParser
