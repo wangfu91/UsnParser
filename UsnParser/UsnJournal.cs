@@ -203,9 +203,9 @@ namespace UsnParser
         }
 
         /// <summary>Returns an enumerable collection of <see cref="UsnEntry"/> entries that meet specified criteria.</summary>
-        /// <param name="filter">The filter.</param>
-        /// <param name="onlyFiles">If gets only the file entries.</param>
-        public IEnumerable<UsnEntry> EnumerateUsnEntries(string filter, bool? onlyFiles)
+        /// <param name="keyword">The filter.</param>
+        /// <param name="filterOption">Filter option.</param>
+        public IEnumerable<UsnEntry> EnumerateUsnEntries(string keyword, FilterOption filterOption)
         {
             var usnState = new USN_JOURNAL_DATA_V0();
 
@@ -251,25 +251,25 @@ namespace UsnParser
                 {
                     var usnEntry = new UsnEntry(pUsnRecord);
 
-                    switch (onlyFiles)
+                    switch (filterOption)
                     {
-                        case true when usnEntry.IsFolder:
-                        case false when !usnEntry.IsFolder:
-                        {
-                            pUsnRecord = new IntPtr(pUsnRecord.ToInt64() + usnEntry.RecordLength);
-                            outBytesReturned -= usnEntry.RecordLength;
-                            continue;
-                        }
+                        case FilterOption.OnlyFiles when usnEntry.IsFolder:
+                        case FilterOption.OnlyDirectories when !usnEntry.IsFolder:
+                            {
+                                pUsnRecord = new IntPtr(pUsnRecord.ToInt64() + usnEntry.RecordLength);
+                                outBytesReturned -= usnEntry.RecordLength;
+                                continue;
+                            }
                     }
 
-                    if (string.IsNullOrWhiteSpace(filter))
+                    if (string.IsNullOrWhiteSpace(keyword))
                     {
                         yield return usnEntry;
                     }
                     else
                     {
                         var options = new GlobOptions { Evaluation = { CaseInsensitive = true } };
-                        var glob = Glob.Parse(filter, options);
+                        var glob = Glob.Parse(keyword, options);
                         if (glob.IsMatch(usnEntry.Name.AsSpan()))
                         {
                             yield return usnEntry;
@@ -460,7 +460,7 @@ namespace UsnParser
         /// <remarks>
         /// If function returns ERROR_ACCESS_DENIED you need to run application as an Administrator.
         /// </remarks>
-        public IEnumerable<UsnEntry> GetUsnJournalEntries(USN_JOURNAL_DATA_V0 previousUsnState, uint reasonMask, string filter, bool? onlyFiles, out USN_JOURNAL_DATA_V0 newUsnState)
+        public IEnumerable<UsnEntry> GetUsnJournalEntries(USN_JOURNAL_DATA_V0 previousUsnState, uint reasonMask, string keyword, FilterOption filterOption, out USN_JOURNAL_DATA_V0 newUsnState)
         {
             var usnEntries = new List<UsnEntry>();
             newUsnState = new USN_JOURNAL_DATA_V0();
@@ -498,13 +498,13 @@ namespace UsnParser
                         // Read USN journal entries.
                         while (bReadMore)
                         {
-                            var bRtn = Win32Api.DeviceIoControl(_usnJournalRootHandle, Win32Api.FSCTL_READ_USN_JOURNAL, rujdBuffer, sizeRujd, pbData, pbDataSize, out var outBytesReturned, IntPtr.Zero);
+                            var bRtn = Win32Api.DeviceIoControl(_usnJournalRootHandle, Win32Api.FSCTL_READ_USN_JOURNAL, rujdBuffer, sizeRujd, pbData, pbDataSize, out var bytesRemaining, IntPtr.Zero);
                             if (bRtn)
                             {
                                 var pUsnRecord = new IntPtr(pbData.ToInt64() + sizeof(ulong));
 
                                 // While there is at least one entry in the USN journal.
-                                while (outBytesReturned > 60)
+                                while (bytesRemaining > 60)
                                 {
                                     var usnEntry = new UsnEntry(pUsnRecord);
 
@@ -515,25 +515,25 @@ namespace UsnParser
                                         break;
                                     }
 
-                                    switch (onlyFiles)
+                                    switch (filterOption)
                                     {
-                                        case true when usnEntry.IsFolder:
-                                        case false when !usnEntry.IsFolder:
-                                        {
-                                            pUsnRecord = new IntPtr(pUsnRecord.ToInt64() + usnEntry.RecordLength);
-                                            outBytesReturned -= usnEntry.RecordLength;
-                                            continue;
-                                        }
+                                        case FilterOption.OnlyFiles when usnEntry.IsFolder:
+                                        case FilterOption.OnlyDirectories when !usnEntry.IsFolder:
+                                            {
+                                                pUsnRecord = new IntPtr(pUsnRecord.ToInt64() + usnEntry.RecordLength);
+                                                bytesRemaining -= usnEntry.RecordLength;
+                                                continue;
+                                            }
                                     }
 
-                                    if (string.IsNullOrWhiteSpace(filter))
+                                    if (string.IsNullOrWhiteSpace(keyword))
                                     {
                                         usnEntries.Add(usnEntry);
                                     }
                                     else
                                     {
                                         var options = new GlobOptions { Evaluation = { CaseInsensitive = true } };
-                                        var glob = Glob.Parse(filter, options);
+                                        var glob = Glob.Parse(keyword, options);
                                         if (glob.IsMatch(usnEntry.Name.AsSpan()))
                                         {
                                             usnEntries.Add(usnEntry);
@@ -541,7 +541,7 @@ namespace UsnParser
                                     }
 
                                     pUsnRecord = new IntPtr(pUsnRecord.ToInt64() + usnEntry.RecordLength);
-                                    outBytesReturned -= usnEntry.RecordLength;
+                                    bytesRemaining -= usnEntry.RecordLength;
                                 }
                             }
 
@@ -578,7 +578,7 @@ namespace UsnParser
             return usnEntries;
         }
 
-        public IEnumerable<UsnEntry> ReadUsnEntries(USN_JOURNAL_DATA_V0 previousUsnState, uint reasonMask, string filter, bool? onlyFiles)
+        public IEnumerable<UsnEntry> ReadUsnEntries(USN_JOURNAL_DATA_V0 previousUsnState, uint reasonMask, string keyword, FilterOption filterOption)
         {
             var newUsnState = new USN_JOURNAL_DATA_V0();
             var lastError = (int)UsnJournalReturnCode.VOLUME_NOT_NTFS;
@@ -633,25 +633,25 @@ namespace UsnParser
                                         break;
                                     }
 
-                                    switch (onlyFiles)
+                                    switch (filterOption)
                                     {
-                                        case true when usnEntry.IsFolder:
-                                        case false when !usnEntry.IsFolder:
-                                        {
-                                            pUsnRecord = new IntPtr(pUsnRecord.ToInt64() + usnEntry.RecordLength);
-                                            outBytesReturned -= usnEntry.RecordLength;
-                                            continue;
-                                        }
+                                        case FilterOption.OnlyFiles when usnEntry.IsFolder:
+                                        case FilterOption.OnlyDirectories when !usnEntry.IsFolder:
+                                            {
+                                                pUsnRecord = new IntPtr(pUsnRecord.ToInt64() + usnEntry.RecordLength);
+                                                outBytesReturned -= usnEntry.RecordLength;
+                                                continue;
+                                            }
                                     }
 
-                                    if (string.IsNullOrWhiteSpace(filter))
+                                    if (string.IsNullOrWhiteSpace(keyword))
                                     {
                                         yield return usnEntry;
                                     }
                                     else
                                     {
                                         var options = new GlobOptions { Evaluation = { CaseInsensitive = true } };
-                                        var glob = Glob.Parse(filter, options);
+                                        var glob = Glob.Parse(keyword, options);
                                         if (glob.IsMatch(usnEntry.Name.AsSpan()))
                                         {
                                             yield return usnEntry;
@@ -789,7 +789,7 @@ namespace UsnParser
         }
 
 
-        #region Disposable Members
+        #region IDisposable
 
         ~UsnJournal()
         {
@@ -805,11 +805,13 @@ namespace UsnParser
         private void Dispose(bool disposing)
         {
             if (disposing)
+            {
                 if (_usnJournalRootHandle != IntPtr.Zero)
                 {
                     Win32Api.CloseHandle(_usnJournalRootHandle);
                     _usnJournalRootHandle = IntPtr.Zero;
                 }
+            }
         }
 
         #endregion // Disposable Members
