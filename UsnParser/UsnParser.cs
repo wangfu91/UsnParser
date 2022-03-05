@@ -41,13 +41,10 @@ namespace UsnParser
         [MinLength(1)]
         public string Volume { get; set; }
 
-        [Option("-f|--filter", Description = "Filter the result with keyword")]
-        public string Keyword { get; set; }
-
-        [Option("-fo|--FileOnly", Description = "Get only the file entries")]
+        [Option("-fo|--FileOnly", Description = "Only show the file entries")]
         public bool FileOnly { get; set; }
 
-        [Option("-do|--DirOnly", Description = "Get only the directory entries")]
+        [Option("-do|--DirOnly", Description = "Only show the directory entries")]
         public bool DirectoryOnly { get; set; }
 
         public CancellationToken Token { get; private set; }
@@ -140,6 +137,9 @@ namespace UsnParser
         // This will automatically be set before OnExecute is invoked
         private UsnParser Parent { get; set; }
 
+        [Option("-f|--filter", Description = "Filter the result with keyword, wildcards are permitted")]
+        public string Keyword { get; set; }
+
         protected override int OnExecute(CommandLineApplication app)
         {
             return ExecuteCommand(() =>
@@ -168,6 +168,10 @@ namespace UsnParser
     [Command("search", Description = "Search the Master File Table")]
     class SearchCommand : SubCommandBase
     {
+        [Argument(1, Description = "Search keyword, wildcards are permitted <Required>")]
+        [Required]
+        public string Keyword { get; set; }
+
         protected override int OnExecute(CommandLineApplication app)
         {
             return ExecuteCommand(() =>
@@ -193,6 +197,9 @@ namespace UsnParser
     [Command("read", Description = "Read history USN journal entries")]
     class ReadCommand : SubCommandBase
     {
+        [Option("-f|--filter", Description = "Filter the result with keyword, wildcards are permitted")]
+        public string Keyword { get; set; }
+
         protected override int OnExecute(CommandLineApplication app)
         {
             return ExecuteCommand(() =>
