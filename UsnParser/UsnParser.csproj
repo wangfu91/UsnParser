@@ -8,6 +8,7 @@
 		<TrimMode>link</TrimMode>
 		<PublishSingleFile>true</PublishSingleFile>
 		<IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+		<AllowUnsafeBlocks>false</AllowUnsafeBlocks>
 	</PropertyGroup>
 
 	<PropertyGroup>

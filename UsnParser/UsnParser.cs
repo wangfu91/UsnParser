@@ -90,15 +90,7 @@ namespace UsnParser
                 Journal = new UsnJournal(driveInfo);
                 using (Journal)
                 {
-                    var usnState = new USN_JOURNAL_DATA_V0();
-                    var retCode = Journal.GetUsnJournalState(ref usnState);
-                    if (retCode != 0)
-                    {
-                        console.PrintError($"FSCTL_QUERY_USN_JOURNAL failed with error: {retCode}");
-                        return -1;
-                    }
-
-                    UsnState = usnState;
+                    UsnState = Journal.GetUsnJournalState();
 #if DEBUG
                     ConsoleUtils.PrintUsnJournalState(console, UsnState);
 #endif

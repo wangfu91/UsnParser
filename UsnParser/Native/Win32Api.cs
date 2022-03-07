@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Microsoft.Win32.SafeHandles;
+using System;
 using System.IO;
 using System.Runtime.InteropServices;
 
@@ -82,7 +83,7 @@ namespace UsnParser.Native
         /// <param name="hTemplateFile">IntPtr to a valid handle to a template file with 'GENERIC_READ' access right</param>
         /// <returns>IntPtr handle to the 'lpFileName' file or device or 'INVALID_HANDLE_VALUE'</returns>
         [DllImport("kernel32.dll", SetLastError = true)]
-        public static extern IntPtr
+        public static extern SafeFileHandle
            CreateFile(string lpFileName,
               uint dwDesiredAccess,
               uint dwShareMode,
@@ -112,7 +113,7 @@ namespace UsnParser.Native
         [return: MarshalAs(UnmanagedType.Bool)]
         public static extern bool
            GetFileInformationByHandle(
-              IntPtr hFile,
+              SafeFileHandle hFile,
               out BY_HANDLE_FILE_INFORMATION lpFileInformation);
 
         /// <summary>
@@ -194,7 +195,7 @@ namespace UsnParser.Native
         [DllImport("kernel32.dll", ExactSpelling = true, SetLastError = true, CharSet = CharSet.Auto)]
         [return: MarshalAs(UnmanagedType.Bool)]
         public static extern bool DeviceIoControl(
-           IntPtr hDevice,
+           SafeFileHandle hDevice,
            uint dwIoControlCode,
            IntPtr lpInBuffer,
            int nInBufferSize,
@@ -218,7 +219,7 @@ namespace UsnParser.Native
         [DllImport("kernel32.dll", ExactSpelling = true, SetLastError = true, CharSet = CharSet.Auto)]
         [return: MarshalAs(UnmanagedType.Bool)]
         public static extern bool DeviceIoControl(
-           IntPtr hDevice,
+           SafeFileHandle hDevice,
            uint dwIoControlCode,
            IntPtr lpInBuffer,
            int nInBufferSize,
