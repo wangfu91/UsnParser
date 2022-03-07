@@ -9,6 +9,8 @@ namespace UsnParser.Native
     {
         #region constants
 
+        internal const uint USN_REASON_MASK = 0xFFFFFFFF;
+
         internal const int INVALID_HANDLE_VALUE = -1;
 
         internal const uint GENERIC_READ = 0x80000000;

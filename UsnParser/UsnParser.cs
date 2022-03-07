@@ -17,7 +17,7 @@ namespace UsnParser
     [VersionOptionFromMember(MemberName = nameof(GetVersion))]
     [Subcommand(typeof(MonitorCommand), typeof(SearchCommand), typeof(ReadCommand))]
     [HelpOption("-h|--help")]
-    class UsnParser
+    internal class UsnParser
     {
         public static int Main(string[] args)
             => CommandLineApplication.Execute<UsnParser>(args);
@@ -34,7 +34,7 @@ namespace UsnParser
         }
     }
 
-    abstract class SubCommandBase
+    internal abstract class SubCommandBase
     {
         [Argument(0, Description = "Volume pathname, e.g. C: <Required>")]
         [Required]
@@ -87,8 +87,7 @@ namespace UsnParser
                 }
 
                 var driveInfo = new DriveInfo(Volume);
-                Journal = new UsnJournal(driveInfo);
-                using (Journal)
+                using (Journal = new UsnJournal(driveInfo))
                 {
                     UsnState = Journal.GetUsnJournalState();
 #if DEBUG
@@ -122,7 +121,7 @@ namespace UsnParser
     }
 
     [Command("monitor", Description = "Monitor real-time USN journal changes")]
-    class MonitorCommand : SubCommandBase
+    internal class MonitorCommand : SubCommandBase
     {
         // You can use this pattern when the parent command may have options or methods you want to
         // use from sub-commands.
@@ -147,7 +146,7 @@ namespace UsnParser
             {
                 if (token.IsCancellationRequested) return;
 
-                var usnEntries = journal.GetUsnJournalEntries(usnState, Constants.USN_REASON_MASK, keyword, filterOption, out usnState);
+                var usnEntries = journal.GetUsnJournalEntries(usnState, Win32Api.USN_REASON_MASK, keyword, filterOption, out usnState);
 
                 foreach (var entry in usnEntries)
                 {
@@ -158,7 +157,7 @@ namespace UsnParser
     }
 
     [Command("search", Description = "Search the Master File Table")]
-    class SearchCommand : SubCommandBase
+    internal class SearchCommand : SubCommandBase
     {
         [Argument(1, Description = "Search keyword, wildcards are permitted <Required>")]
         [Required]
@@ -187,7 +186,7 @@ namespace UsnParser
     }
 
     [Command("read", Description = "Read history USN journal entries")]
-    class ReadCommand : SubCommandBase
+    internal class ReadCommand : SubCommandBase
     {
         [Option("-f|--filter", Description = "Filter the result with keyword, wildcards are permitted")]
         public string Keyword { get; set; }
@@ -209,7 +208,7 @@ namespace UsnParser
                 UsnJournalID = usnJournalId
             };
 
-            var usnEntries = journal.ReadUsnEntries(usnReadState, Constants.USN_REASON_MASK, keyword, filterOption);
+            var usnEntries = journal.ReadUsnEntries(usnReadState, Win32Api.USN_REASON_MASK, keyword, filterOption);
 
             foreach (var entry in usnEntries)
             {
