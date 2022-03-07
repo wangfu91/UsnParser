@@ -5,34 +5,34 @@ using System.Runtime.InteropServices;
 
 namespace UsnParser.Native
 {
-    public static partial class Win32Api
+    internal static partial class Win32Api
     {
         #region constants
 
-        public const int INVALID_HANDLE_VALUE = -1;
+        internal const int INVALID_HANDLE_VALUE = -1;
 
-        public const uint GENERIC_READ = 0x80000000;
-        public const uint GENERIC_WRITE = 0x40000000;
-        public const uint FILE_SHARE_READ = 0x00000001;
-        public const uint FILE_SHARE_WRITE = 0x00000002;
-        public const uint FILE_ATTRIBUTE_DIRECTORY = 0x00000010;
+        internal const uint GENERIC_READ = 0x80000000;
+        internal const uint GENERIC_WRITE = 0x40000000;
+        internal const uint FILE_SHARE_READ = 0x00000001;
+        internal const uint FILE_SHARE_WRITE = 0x00000002;
+        internal const uint FILE_ATTRIBUTE_DIRECTORY = 0x00000010;
 
-        //public const uint CREATE_NEW = 1;
-        //public const uint CREATE_ALWAYS = 2;
-        public const uint OPEN_EXISTING = 3;
-        //public const uint OPEN_ALWAYS = 4;
-        //public const uint TRUNCATE_EXISTING = 5;
+        internal const uint CREATE_NEW = 1;
+        internal const uint CREATE_ALWAYS = 2;
+        internal const uint OPEN_EXISTING = 3;
+        internal const uint OPEN_ALWAYS = 4;
+        internal const uint TRUNCATE_EXISTING = 5;
 
-        //public const uint FileNameInformationClass = 9;
-        //public const uint FILE_ATTRIBUTE_NORMAL = 0x80;
-        public const uint FILE_FLAG_BACKUP_SEMANTICS = 33554432;
-        public const uint FILE_OPEN_FOR_BACKUP_INTENT = 16384;
-        public const uint FILE_OPEN_BY_FILE_ID = 8192;
-        public const uint FILE_OPEN = 1;
-        public const uint FILE_OPEN_IF = 0x00000003;
+        //internal const uint FileNameInformationClass = 9;
+        //internal const uint FILE_ATTRIBUTE_NORMAL = 0x80;
+        internal const uint FILE_FLAG_BACKUP_SEMANTICS = 33554432;
+        internal const uint FILE_OPEN_FOR_BACKUP_INTENT = 16384;
+        internal const uint FILE_OPEN_BY_FILE_ID = 8192;
+        internal const uint FILE_OPEN = 1;
+        internal const uint FILE_OPEN_IF = 0x00000003;
 
-        public const uint OBJ_CASE_INSENSITIVE = 0x40;
-        //public const OBJ_KERNEL_HANDLE = 0x200;
+        internal const uint OBJ_CASE_INSENSITIVE = 0x40;
+        //internal const OBJ_KERNEL_HANDLE = 0x200;
 
         // CTL_CODE( DeviceType, Function, Method, Access ) (((DeviceType) << 16) | ((Access) << 14) | ((Function) << 2) | (Method))
         private const uint FILE_DEVICE_FILE_SYSTEM = 0x00000009;
@@ -44,26 +44,26 @@ namespace UsnParser.Native
         //private const uint FILE_READ_ACCESS = 1;
         //private const uint FILE_WRITE_ACCESS = 2;
 
-        //public static int GWL_EXSTYLE = -20;
-        //public static int WS_EX_LAYERED = 0x00080000;
-        //public static int WS_EX_TRANSPARENT = 0x00000020;
+        //internal static int GWL_EXSTYLE = -20;
+        //internal static int WS_EX_LAYERED = 0x00080000;
+        //internal static int WS_EX_TRANSPARENT = 0x00000020;
 
-        //public const uint FSCTL_GET_OBJECT_ID = 0x9009c;
+        //internal const uint FSCTL_GET_OBJECT_ID = 0x9009c;
 
         // FSCTL_ENUM_USN_DATA = CTL_CODE(FILE_DEVICE_FILE_SYSTEM, 44,  METHOD_NEITHER, FILE_ANY_ACCESS)
-        public const uint FSCTL_ENUM_USN_DATA = (FILE_DEVICE_FILE_SYSTEM << 16) | (FILE_ANY_ACCESS << 14) | (44 << 2) | METHOD_NEITHER;
+        internal const uint FSCTL_ENUM_USN_DATA = (FILE_DEVICE_FILE_SYSTEM << 16) | (FILE_ANY_ACCESS << 14) | (44 << 2) | METHOD_NEITHER;
 
         // FSCTL_READ_USN_JOURNAL = CTL_CODE(FILE_DEVICE_FILE_SYSTEM, 46,  METHOD_NEITHER, FILE_ANY_ACCESS)
-        public const uint FSCTL_READ_USN_JOURNAL = (FILE_DEVICE_FILE_SYSTEM << 16) | (FILE_ANY_ACCESS << 14) | (46 << 2) | METHOD_NEITHER;
+        internal const uint FSCTL_READ_USN_JOURNAL = (FILE_DEVICE_FILE_SYSTEM << 16) | (FILE_ANY_ACCESS << 14) | (46 << 2) | METHOD_NEITHER;
 
         //  FSCTL_CREATE_USN_JOURNAL        CTL_CODE(FILE_DEVICE_FILE_SYSTEM, 57,  METHOD_NEITHER, FILE_ANY_ACCESS)
-        public const uint FSCTL_CREATE_USN_JOURNAL = (FILE_DEVICE_FILE_SYSTEM << 16) | (FILE_ANY_ACCESS << 14) | (57 << 2) | METHOD_NEITHER;
+        internal const uint FSCTL_CREATE_USN_JOURNAL = (FILE_DEVICE_FILE_SYSTEM << 16) | (FILE_ANY_ACCESS << 14) | (57 << 2) | METHOD_NEITHER;
 
         //  FSCTL_QUERY_USN_JOURNAL         CTL_CODE(FILE_DEVICE_FILE_SYSTEM, 61, METHOD_BUFFERED, FILE_ANY_ACCESS)
-        public const uint FSCTL_QUERY_USN_JOURNAL = (FILE_DEVICE_FILE_SYSTEM << 16) | (FILE_ANY_ACCESS << 14) | (61 << 2) | METHOD_BUFFERED;
+        internal const uint FSCTL_QUERY_USN_JOURNAL = (FILE_DEVICE_FILE_SYSTEM << 16) | (FILE_ANY_ACCESS << 14) | (61 << 2) | METHOD_BUFFERED;
 
         // FSCTL_DELETE_USN_JOURNAL        CTL_CODE(FILE_DEVICE_FILE_SYSTEM, 62, METHOD_BUFFERED, FILE_ANY_ACCESS)
-        public const uint FSCTL_DELETE_USN_JOURNAL = (FILE_DEVICE_FILE_SYSTEM << 16) | (FILE_ANY_ACCESS << 14) | (62 << 2) | METHOD_BUFFERED;
+        internal const uint FSCTL_DELETE_USN_JOURNAL = (FILE_DEVICE_FILE_SYSTEM << 16) | (FILE_ANY_ACCESS << 14) | (62 << 2) | METHOD_BUFFERED;
 
         #endregion
 
@@ -82,8 +82,8 @@ namespace UsnParser.Native
         /// <param name="dwFlagsAndAttributes">File or device attributes and flags (typically FILE_ATTRIBUTE_NORMAL)</param>
         /// <param name="hTemplateFile">IntPtr to a valid handle to a template file with 'GENERIC_READ' access right</param>
         /// <returns>IntPtr handle to the 'lpFileName' file or device or 'INVALID_HANDLE_VALUE'</returns>
-        [DllImport("kernel32.dll", SetLastError = true)]
-        public static extern SafeFileHandle
+        [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
+        internal static extern SafeFileHandle
            CreateFile(string lpFileName,
               uint dwDesiredAccess,
               uint dwShareMode,
@@ -99,7 +99,7 @@ namespace UsnParser.Native
         /// <returns>'true' if successful, otherwise 'false'</returns>
         [DllImport("kernel32.dll", SetLastError = true)]
         [return: MarshalAs(UnmanagedType.Bool)]
-        public static extern bool
+        internal static extern bool
            CloseHandle(
               IntPtr hObject);
 
@@ -111,7 +111,7 @@ namespace UsnParser.Native
         /// <returns>'true' if successful, otherwise 'false'</returns>
         [DllImport("kernel32.dll", SetLastError = true)]
         [return: MarshalAs(UnmanagedType.Bool)]
-        public static extern bool
+        internal static extern bool
            GetFileInformationByHandle(
               SafeFileHandle hFile,
               out BY_HANDLE_FILE_INFORMATION lpFileInformation);
@@ -121,9 +121,9 @@ namespace UsnParser.Native
         /// </summary>
         /// <param name="fileName">Fully qualified path to the file to delete</param>
         /// <returns>'true' if successful, otherwise 'false'</returns>
-        [DllImport("kernel32.dll", SetLastError = true)]
+        [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
         [return: MarshalAs(UnmanagedType.Bool)]
-        public static extern bool DeleteFile(
+        internal static extern bool DeleteFile(
            string fileName);
 
         /// <summary>
@@ -137,7 +137,7 @@ namespace UsnParser.Native
         /// <returns>'true' if successful, otherwise 'false'</returns>
         [DllImport("kernel32.dll")]
         [return: MarshalAs(UnmanagedType.Bool)]
-        public static extern bool ReadFile(
+        internal static extern bool ReadFile(
            IntPtr hFile,
            IntPtr lpBuffer,
            uint nNumberOfBytesToRead,
@@ -155,7 +155,7 @@ namespace UsnParser.Native
         /// <returns>'true' if successful, otherwise 'false'</returns>
         [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
         [return: MarshalAs(UnmanagedType.Bool)]
-        public static extern bool WriteFile(
+        internal static extern bool WriteFile(
            IntPtr hFile,
            IntPtr bytes,
            uint nNumberOfBytesToWrite,
@@ -173,7 +173,7 @@ namespace UsnParser.Native
         /// <returns>'true' if successful, otherwise 'false'</returns>
         [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
         [return: MarshalAs(UnmanagedType.Bool)]
-        public static extern bool WriteFile(
+        internal static extern bool WriteFile(
            IntPtr hFile,
            byte[] lpBuffer,
            uint nNumberOfBytesToWrite,
@@ -194,7 +194,7 @@ namespace UsnParser.Native
         /// <returns>'true' if successful, otherwise 'false'</returns>
         [DllImport("kernel32.dll", ExactSpelling = true, SetLastError = true, CharSet = CharSet.Auto)]
         [return: MarshalAs(UnmanagedType.Bool)]
-        public static extern bool DeviceIoControl(
+        internal static extern bool DeviceIoControl(
            SafeFileHandle hDevice,
            uint dwIoControlCode,
            IntPtr lpInBuffer,
@@ -218,7 +218,7 @@ namespace UsnParser.Native
         /// <returns></returns>
         [DllImport("kernel32.dll", ExactSpelling = true, SetLastError = true, CharSet = CharSet.Auto)]
         [return: MarshalAs(UnmanagedType.Bool)]
-        public static extern bool DeviceIoControl(
+        internal static extern bool DeviceIoControl(
            SafeFileHandle hDevice,
            uint dwIoControlCode,
            IntPtr lpInBuffer,
@@ -231,7 +231,7 @@ namespace UsnParser.Native
 
         /// <summary>Sets the number of bytes specified by 'size' of the memory associated with the argument 'ptr' to zero.</summary>
         [DllImport("kernel32.dll", SetLastError = false, CharSet = CharSet.Unicode, EntryPoint = "RtlZeroMemory")]
-        public static extern void ZeroMemory(IntPtr ptr, int size);
+        internal static extern void ZeroMemory(IntPtr ptr, int size);
 
 
         /// <summary>
@@ -250,7 +250,7 @@ namespace UsnParser.Native
         /// <param name="eaLength">Length of the EA buffer</param>
         /// <returns>either STATUS_SUCCESS or an appropriate error status. If it returns an error status, the caller can find more information about the cause of the failure by checking the IoStatusBlock</returns>
         [DllImport("ntdll.dll", ExactSpelling = true, SetLastError = true)]
-        public static extern int NtCreateFile(ref IntPtr handle, FileAccess access,
+        internal static extern int NtCreateFile(ref IntPtr handle, FileAccess access,
            ref OBJECT_ATTRIBUTES objectAttributes, ref IO_STATUS_BLOCK ioStatus, ref long allocSize, uint fileAttributes,
            FileShare share, uint createDisposition, uint createOptions, IntPtr eaBuffer, uint eaLength);
 
@@ -265,7 +265,7 @@ namespace UsnParser.Native
         /// <param name="fileInformation"></param>
         /// <returns></returns>
         [DllImport("ntdll.dll", ExactSpelling = true, SetLastError = true)]
-        public static extern int NtQueryInformationFile(
+        internal static extern int NtQueryInformationFile(
            IntPtr fileHandle,
            ref IO_STATUS_BLOCK IoStatusBlock,
            IntPtr pInfoBlock,
