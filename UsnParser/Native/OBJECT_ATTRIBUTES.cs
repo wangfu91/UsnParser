@@ -8,7 +8,8 @@ namespace UsnParser.Native
     public struct OBJECT_ATTRIBUTES
     {
         /// <summary>The number of bytes of data contained in this structure. The InitializeObjectAttributes macro sets this member to sizeof(OBJECT_ATTRIBUTES).</summary>
-        [MarshalAs(UnmanagedType.U8)] public ulong Length;
+        [MarshalAs(UnmanagedType.U8)] 
+        public ulong Length;
 
 
         /// <summary>Optional handle to the root object directory for the path name specified by the ObjectName member.</summary>
@@ -20,7 +21,8 @@ namespace UsnParser.Native
 
 
         /// <summary>Bitmask of flags that specify object handle attributes.</summary>
-        [MarshalAs(UnmanagedType.U8)] public ulong Attributes;
+        [MarshalAs(UnmanagedType.U8)] 
+        public ulong Attributes;
 
 
         /// <summary>Specifies a security descriptor (SECURITY_DESCRIPTOR) for the object when the object is created. If this member is NULL, the object will receive default security settings.</summary>
