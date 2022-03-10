@@ -9,28 +9,28 @@ namespace UsnParser.Native
     public struct READ_USN_JOURNAL_DATA_V0
     {
         /// <summary>The USN at which to begin reading the change journal.</summary>
-        [MarshalAs(UnmanagedType.U8)] public ulong StartUsn;
+        public long StartUsn;
 
 
         /// <summary>A mask of flags, each flag noting a change for which the file or directory has a record in the change journal.</summary>
-        [MarshalAs(UnmanagedType.U4)] public uint ReasonMask;
+        public uint ReasonMask;
 
 
         /// <summary>A value that specifies when to return change journal records.</summary>
-        [MarshalAs(UnmanagedType.U4)] public uint ReturnOnlyOnClose;
+        public uint ReturnOnlyOnClose;
 
 
         /// <summary>The time-out value, in seconds, used with the <see cref="BytesToWaitFor"/> member to tell the operating system what to do
         /// if the FSCTL_READ_USN_JOURNAL operation requests more data than exists in the change journal.</summary>
-        [MarshalAs(UnmanagedType.U8)] public ulong Timeout;
+        public ulong Timeout;
 
 
         /// <summary>The number of bytes of unfiltered data added to the change journal. Use this value with <see cref="Timeout"/> to tell the operating system what to do
         /// if the FSCTL_READ_USN_JOURNAL operation requests more data than exists in the change journal.</summary>
-        [MarshalAs(UnmanagedType.U8)] public ulong BytesToWaitFor;
+        public ulong BytesToWaitFor;
 
 
         /// <summary>The identifier for the instance of the journal that is current for the volume.</summary>
-        [MarshalAs(UnmanagedType.U8)] public ulong UsnJournalId;
+        public ulong UsnJournalId;
     }
 }
