@@ -123,11 +123,6 @@ namespace UsnParser
     [Command("monitor", Description = "Monitor real-time USN journal changes")]
     internal class MonitorCommand : SubCommandBase
     {
-        // You can use this pattern when the parent command may have options or methods you want to
-        // use from sub-commands.
-        // This will automatically be set before OnExecute is invoked
-        private UsnParser Parent { get; set; }
-
         [Option("-f|--filter", Description = "Filter the result with keyword, wildcards are permitted")]
         public string Keyword { get; set; }
 

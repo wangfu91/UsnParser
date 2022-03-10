@@ -516,44 +516,6 @@ namespace UsnParser
                    usnJournalPreviousState.NextUsn >= usnJournalState.NextUsn;
         }
 
-        private static uint GetVolumeSerialNumber(DriveInfo driveInfo, out uint volumeSerialNumber)
-        {
-            volumeSerialNumber = 0;
-            var pathRoot = string.Concat(@"\\.\", driveInfo.Name);
-
-            using var hRoot = CreateFile(pathRoot,
-               0,
-               FILE_SHARE_READ | FILE_SHARE_WRITE,
-               IntPtr.Zero,
-               OPEN_EXISTING,
-               (uint)FileFlagsAndAttributes.FILE_FLAG_BACKUP_SEMANTICS,
-               IntPtr.Zero);
-
-            if (hRoot.IsInvalid)
-            {
-                var lastError = Marshal.GetLastWin32Error();
-                throw new Win32Exception(lastError);
-            }
-
-
-            if (!hRoot.IsInvalid)
-            {
-                var bRtn = GetFileInformationByHandle(hRoot, out var fi);
-                if (bRtn)
-                {
-                    volumeSerialNumber = fi.VolumeSerialNumber;
-                }
-                else
-                {
-                    var lastError = Marshal.GetLastWin32Error();
-                    throw new Win32Exception(lastError);
-                }
-            }
-
-            return volumeSerialNumber;
-        }
-
-
         private SafeFileHandle GetRootHandle()
         {
             var vol = string.Concat(@"\\.\", _driveInfo.Name.TrimEnd('\\'));
