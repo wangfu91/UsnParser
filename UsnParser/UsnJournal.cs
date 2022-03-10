@@ -204,7 +204,6 @@ namespace UsnParser
             UNICODE_STRING unicodeString;
             var objAttributes = new OBJECT_ATTRIBUTES();
             var ioStatusBlock = new IO_STATUS_BLOCK();
-            var hFile = IntPtr.Zero;
 
             var buffer = Marshal.AllocHGlobal(4096);
             var refPtr = Marshal.AllocHGlobal(8);
@@ -228,32 +227,33 @@ namespace UsnParser
 
             try
             {
-                var bSuccess = NtCreateFile(ref hFile, FileAccess.Read, ref objAttributes, ref ioStatusBlock,
+                var bSuccess = NtCreateFile(out var hFile, FileAccess.Read, ref objAttributes, ref ioStatusBlock,
                     ref allocSize, 0,
                     FileShare.ReadWrite, FILE_OPEN_IF,
                     FILE_OPEN_BY_FILE_ID, IntPtr.Zero, 0);
 
-
-                if (bSuccess == 0)
+                using (hFile)
                 {
-                    bSuccess = NtQueryInformationFile(hFile, ref ioStatusBlock, buffer, 4096,
-                        FILE_INFORMATION_CLASS.FileNameInformation);
-
                     if (bSuccess == 0)
                     {
-                        // The first 4 bytes are the name length.
-                        var nameLength = Marshal.ReadInt32(buffer, 0);
+                        bSuccess = NtQueryInformationFile(hFile, ref ioStatusBlock, buffer, 4096,
+                            FILE_INFORMATION_CLASS.FileNameInformation);
 
-                        // The next bytes are the name.
-                        path = Marshal.PtrToStringUni(new IntPtr(buffer.ToInt64() + 4), nameLength / 2);
+                        if (bSuccess == 0)
+                        {
+                            // The first 4 bytes are the name length.
+                            var nameLength = Marshal.ReadInt32(buffer, 0);
 
-                        return true;
+                            // The next bytes are the name.
+                            path = Marshal.PtrToStringUni(new IntPtr(buffer.ToInt64() + 4), nameLength / 2);
+
+                            return true;
+                        }
                     }
                 }
             }
             finally
             {
-                CloseHandle(hFile);
                 Marshal.FreeHGlobal(buffer);
                 Marshal.FreeHGlobal(objAttIntPtr);
                 Marshal.FreeHGlobal(refPtr);

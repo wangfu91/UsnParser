@@ -25,8 +25,6 @@ namespace UsnParser.Native
         internal const uint OPEN_ALWAYS = 4;
         internal const uint TRUNCATE_EXISTING = 5;
 
-        //internal const uint FileNameInformationClass = 9;
-        //internal const uint FILE_ATTRIBUTE_NORMAL = 0x80;
         internal const uint FILE_FLAG_BACKUP_SEMANTICS = 33554432;
         internal const uint FILE_OPEN_FOR_BACKUP_INTENT = 16384;
         internal const uint FILE_OPEN_BY_FILE_ID = 8192;
@@ -34,7 +32,6 @@ namespace UsnParser.Native
         internal const uint FILE_OPEN_IF = 0x00000003;
 
         internal const uint OBJ_CASE_INSENSITIVE = 0x40;
-        //internal const OBJ_KERNEL_HANDLE = 0x200;
 
         // CTL_CODE( DeviceType, Function, Method, Access ) (((DeviceType) << 16) | ((Access) << 14) | ((Function) << 2) | (Method))
         private const uint FILE_DEVICE_FILE_SYSTEM = 0x00000009;
@@ -42,15 +39,6 @@ namespace UsnParser.Native
         private const uint METHOD_NEITHER = 3;
         private const uint METHOD_BUFFERED = 0;
         private const uint FILE_ANY_ACCESS = 0;
-        //private const uint FILE_SPECIAL_ACCESS = 0;
-        //private const uint FILE_READ_ACCESS = 1;
-        //private const uint FILE_WRITE_ACCESS = 2;
-
-        //internal static int GWL_EXSTYLE = -20;
-        //internal static int WS_EX_LAYERED = 0x00080000;
-        //internal static int WS_EX_TRANSPARENT = 0x00000020;
-
-        //internal const uint FSCTL_GET_OBJECT_ID = 0x9009c;
 
         // FSCTL_ENUM_USN_DATA = CTL_CODE(FILE_DEVICE_FILE_SYSTEM, 44,  METHOD_NEITHER, FILE_ANY_ACCESS)
         internal const uint FSCTL_ENUM_USN_DATA = (FILE_DEVICE_FILE_SYSTEM << 16) | (FILE_ANY_ACCESS << 14) | (44 << 2) | METHOD_NEITHER;
@@ -95,17 +83,6 @@ namespace UsnParser.Native
               IntPtr hTemplateFile);
 
         /// <summary>
-        /// Closes the file specified by the IntPtr 'hObject'.
-        /// </summary>
-        /// <param name="hObject">IntPtr handle to a file</param>
-        /// <returns>'true' if successful, otherwise 'false'</returns>
-        [DllImport("kernel32.dll", SetLastError = true)]
-        [return: MarshalAs(UnmanagedType.Bool)]
-        internal static extern bool
-           CloseHandle(
-              IntPtr hObject);
-
-        /// <summary>
         /// Fills the 'BY_HANDLE_FILE_INFORMATION' structure for the file specified by 'hFile'.
         /// </summary>
         /// <param name="hFile">Fully qualified name of a file</param>
@@ -113,74 +90,7 @@ namespace UsnParser.Native
         /// <returns>'true' if successful, otherwise 'false'</returns>
         [DllImport("kernel32.dll", SetLastError = true)]
         [return: MarshalAs(UnmanagedType.Bool)]
-        internal static extern bool
-           GetFileInformationByHandle(
-              SafeFileHandle hFile,
-              out BY_HANDLE_FILE_INFORMATION lpFileInformation);
-
-        /// <summary>
-        /// Deletes the file specified by 'fileName'.
-        /// </summary>
-        /// <param name="fileName">Fully qualified path to the file to delete</param>
-        /// <returns>'true' if successful, otherwise 'false'</returns>
-        [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
-        [return: MarshalAs(UnmanagedType.Bool)]
-        internal static extern bool DeleteFile(
-           string fileName);
-
-        /// <summary>
-        /// Read data from the file specified by 'hFile'.
-        /// </summary>
-        /// <param name="hFile">IntPtr handle to the file to read</param>
-        /// <param name="lpBuffer">IntPtr to a buffer of bytes to receive the bytes read from 'hFile'</param>
-        /// <param name="nNumberOfBytesToRead">Number of bytes to read from 'hFile'</param>
-        /// <param name="lpNumberOfBytesRead">Number of bytes read from 'hFile'</param>
-        /// <param name="lpOverlapped">IntPtr to an 'OVERLAPPED' structure</param>
-        /// <returns>'true' if successful, otherwise 'false'</returns>
-        [DllImport("kernel32.dll")]
-        [return: MarshalAs(UnmanagedType.Bool)]
-        internal static extern bool ReadFile(
-           IntPtr hFile,
-           IntPtr lpBuffer,
-           uint nNumberOfBytesToRead,
-           out uint lpNumberOfBytesRead,
-           IntPtr lpOverlapped);
-
-        /// <summary>
-        /// Writes the 
-        /// </summary>
-        /// <param name="hFile">IntPtr handle to the file to write</param>
-        /// <param name="bytes">IntPtr to a buffer of bytes to write to 'hFile'</param>
-        /// <param name="nNumberOfBytesToWrite">Number of bytes in 'lpBuffer' to write to 'hFile'</param>
-        /// <param name="lpNumberOfBytesWritten">Number of bytes written to 'hFile'</param>
-        /// <param name="overlapped">IntPtr to an 'OVERLAPPED' structure</param>
-        /// <returns>'true' if successful, otherwise 'false'</returns>
-        [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
-        [return: MarshalAs(UnmanagedType.Bool)]
-        internal static extern bool WriteFile(
-           IntPtr hFile,
-           IntPtr bytes,
-           uint nNumberOfBytesToWrite,
-           out uint lpNumberOfBytesWritten,
-           int overlapped);
-
-        /// <summary>
-        /// Writes the data in 'lpBuffer' to the file specified by 'hFile'.
-        /// </summary>
-        /// <param name="hFile">IntPtr handle to file to write</param>
-        /// <param name="lpBuffer">Buffer of bytes to write to file 'hFile'</param>
-        /// <param name="nNumberOfBytesToWrite">Number of bytes in 'lpBuffer' to write to 'hFile'</param>
-        /// <param name="lpNumberOfBytesWritten">Number of bytes written to 'hFile'</param>
-        /// <param name="overlapped">IntPtr to an 'OVERLAPPED' structure</param>
-        /// <returns>'true' if successful, otherwise 'false'</returns>
-        [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
-        [return: MarshalAs(UnmanagedType.Bool)]
-        internal static extern bool WriteFile(
-           IntPtr hFile,
-           byte[] lpBuffer,
-           uint nNumberOfBytesToWrite,
-           out uint lpNumberOfBytesWritten,
-           int overlapped);
+        internal static extern bool GetFileInformationByHandle(SafeFileHandle hFile, out BY_HANDLE_FILE_INFORMATION lpFileInformation);
 
         /// <summary>
         /// Sends the 'dwIoControlCode' to the device specified by 'hDevice'.
@@ -252,10 +162,9 @@ namespace UsnParser.Native
         /// <param name="eaLength">Length of the EA buffer</param>
         /// <returns>either STATUS_SUCCESS or an appropriate error status. If it returns an error status, the caller can find more information about the cause of the failure by checking the IoStatusBlock</returns>
         [DllImport("ntdll.dll", ExactSpelling = true, SetLastError = true)]
-        internal static extern int NtCreateFile(ref IntPtr handle, FileAccess access,
-           ref OBJECT_ATTRIBUTES objectAttributes, ref IO_STATUS_BLOCK ioStatus, ref long allocSize, uint fileAttributes,
-           FileShare share, uint createDisposition, uint createOptions, IntPtr eaBuffer, uint eaLength);
-
+        internal static extern int NtCreateFile(out SafeFileHandle handle, FileAccess access,
+            ref OBJECT_ATTRIBUTES objectAttributes, ref IO_STATUS_BLOCK ioStatus, ref long allocSize, uint fileAttributes,
+            FileShare share, uint createDisposition, uint createOptions, IntPtr eaBuffer, uint eaLength);
 
         /// <summary>
         /// 
@@ -268,13 +177,12 @@ namespace UsnParser.Native
         /// <returns></returns>
         [DllImport("ntdll.dll", ExactSpelling = true, SetLastError = true)]
         internal static extern int NtQueryInformationFile(
-           IntPtr fileHandle,
+           SafeFileHandle fileHandle,
            ref IO_STATUS_BLOCK IoStatusBlock,
            IntPtr pInfoBlock,
            uint length,
            FILE_INFORMATION_CLASS fileInformation);
 
         #endregion
-
     }
 }
