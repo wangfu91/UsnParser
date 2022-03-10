@@ -11,8 +11,6 @@ namespace UsnParser.Native
 
         internal const uint USN_REASON_MASK = 0xFFFFFFFF;
 
-        internal const int INVALID_HANDLE_VALUE = -1;
-
         internal const uint GENERIC_READ = 0x80000000;
         internal const uint GENERIC_WRITE = 0x40000000;
         internal const uint FILE_SHARE_READ = 0x00000001;
@@ -24,14 +22,6 @@ namespace UsnParser.Native
         internal const uint OPEN_EXISTING = 3;
         internal const uint OPEN_ALWAYS = 4;
         internal const uint TRUNCATE_EXISTING = 5;
-
-        internal const uint FILE_FLAG_BACKUP_SEMANTICS = 33554432;
-        internal const uint FILE_OPEN_FOR_BACKUP_INTENT = 16384;
-        internal const uint FILE_OPEN_BY_FILE_ID = 8192;
-        internal const uint FILE_OPEN = 1;
-        internal const uint FILE_OPEN_IF = 0x00000003;
-
-        internal const uint OBJ_CASE_INSENSITIVE = 0x40;
 
         // CTL_CODE( DeviceType, Function, Method, Access ) (((DeviceType) << 16) | ((Access) << 14) | ((Function) << 2) | (Method))
         private const uint FILE_DEVICE_FILE_SYSTEM = 0x00000009;

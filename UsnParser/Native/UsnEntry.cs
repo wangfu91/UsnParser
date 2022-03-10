@@ -21,7 +21,6 @@ namespace UsnParser.Native
         /// <summary>The 32bit USN Record Length.</summary>
         public uint RecordLength { get; }
 
-
         /// <summary>The 64bit USN.</summary>
         public long USN { get; }
 
@@ -35,7 +34,6 @@ namespace UsnParser.Native
         /// <summary>The 64bit Parent File Reference Number.</summary>
         public ulong ParentFileReferenceNumber { get; }
 
-
         /// <summary>The 32bit Reason Code.</summary>
         public uint Reason { get; }
 
@@ -46,7 +44,6 @@ namespace UsnParser.Native
         /// <summary>The 32bit Reason Code.</summary>
         public string Name { get; }
 
-
         private string _oldName;
         public string OldName
         {
@@ -54,13 +51,10 @@ namespace UsnParser.Native
             set => _oldName = value;
         }
 
-
         /// <summary>The 32bit File Attributes.</summary>
         private readonly uint _fileAttributes;
 
-
         public bool IsFolder => (_fileAttributes & Win32Api.FILE_ATTRIBUTE_DIRECTORY) != 0;
-
 
         /// <summary>USN Record Constructor.</summary>
         /// <param name="ptrToUsnRecord">Buffer pointer to first byte of the USN Record</param>
@@ -83,7 +77,6 @@ namespace UsnParser.Native
 
             Name = Marshal.PtrToStringUni(new IntPtr(ptrToUsnRecord.ToInt64() + fileNameOffset), fileNameLength / sizeof(char));
         }
-
 
         #region IComparable<UsnEntry> Members
 

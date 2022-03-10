@@ -12,15 +12,13 @@ namespace UsnParser.Native
         /// <remarks>The first call to FSCTL_ENUM_USN_DATA during an enumeration must have the StartFileReferenceNumber member set to (DWORDLONG)0.
         /// Each call to FSCTL_ENUM_USN_DATA retrieves the starting point for the subsequent call as the first entry in the output buffer.
         /// Subsequent calls must be made with StartFileReferenceNumber set to this value. For more information, see FSCTL_ENUM_USN_DATA.</remarks>
-        [MarshalAs(UnmanagedType.U8)] public ulong StartFileReferenceNumber;
-
+        public ulong StartFileReferenceNumber;
 
         /// <summary>The lower boundary of the range of USN values used to filter which records are returned.
         /// Only records whose last change journal USN is between or equal to the LowUsn and HighUsn member values are returned.</summary>
-        [MarshalAs(UnmanagedType.I8)] public long LowUsn;
-
+        public long LowUsn;
 
         /// <summary>The upper boundary of the range of USN values used to filter which files are returned.</summary>
-        [MarshalAs(UnmanagedType.I8)] public long HighUsn;
+        public long HighUsn;
     }
 }

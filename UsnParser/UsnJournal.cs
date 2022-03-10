@@ -220,17 +220,16 @@ namespace UsnParser
             Marshal.StructureToPtr(unicodeString, objAttIntPtr, true);
 
             //  InitializeObjectAttributes.
-            objAttributes.Length = (ulong)Marshal.SizeOf(objAttributes);
+            objAttributes.Length = (uint)Marshal.SizeOf(objAttributes);
             objAttributes.ObjectName = objAttIntPtr;
             objAttributes.RootDirectory = _usnJournalRootHandle.DangerousGetHandle();
-            objAttributes.Attributes = (int)OBJ_CASE_INSENSITIVE;
-
+            objAttributes.Attributes = (int)ObjectAttribute.OBJ_CASE_INSENSITIVE;
             try
             {
                 var bSuccess = NtCreateFile(out var hFile, FileAccess.Read, ref objAttributes, ref ioStatusBlock,
                     ref allocSize, 0,
-                    FileShare.ReadWrite, FILE_OPEN_IF,
-                    FILE_OPEN_BY_FILE_ID, IntPtr.Zero, 0);
+                    FileShare.ReadWrite, (uint)NtFileMode.FILE_OPEN_IF,
+                    (uint)NtFileCreateOptions.FILE_OPEN_BY_FILE_ID, IntPtr.Zero, 0);
 
                 using (hFile)
                 {
@@ -293,7 +292,7 @@ namespace UsnParser
 
             var rujd = new READ_USN_JOURNAL_DATA_V0
             {
-                StartUsn = (ulong)previousUsnState.NextUsn,
+                StartUsn = previousUsnState.NextUsn,
                 ReasonMask = reasonMask,
                 ReturnOnlyOnClose = 0,
                 Timeout = 0,
@@ -403,7 +402,7 @@ namespace UsnParser
 
             var rujd = new READ_USN_JOURNAL_DATA_V0
             {
-                StartUsn = (ulong)previousUsnState.NextUsn,
+                StartUsn = previousUsnState.NextUsn,
                 ReasonMask = reasonMask,
                 ReturnOnlyOnClose = 0,
                 Timeout = 0,
@@ -527,7 +526,7 @@ namespace UsnParser
                FILE_SHARE_READ | FILE_SHARE_WRITE,
                IntPtr.Zero,
                OPEN_EXISTING,
-               FILE_FLAG_BACKUP_SEMANTICS,
+               (uint)FileFlagsAndAttributes.FILE_FLAG_BACKUP_SEMANTICS,
                IntPtr.Zero);
 
             if (hRoot.IsInvalid)
