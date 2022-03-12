@@ -13,7 +13,7 @@ namespace UsnParser
     [Command(
         Name = "UsnParser",
         FullName = "NTFS USN Journal parser",
-        Description = "A command utility to search the MFT & monitoring the changes of USN Journal.")]
+        Description = "A command utility for NTFS to search the MFT & monitoring the changes of USN Journal.")]
     [VersionOptionFromMember(MemberName = nameof(GetVersion))]
     [Subcommand(typeof(MonitorCommand), typeof(SearchCommand), typeof(ReadCommand))]
     [HelpOption("-h|--help")]
