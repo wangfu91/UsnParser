@@ -1,4 +1,5 @@
 ﻿using DotNet.Globbing;
+using McMaster.Extensions.CommandLineUtils;
 using Microsoft.Win32.SafeHandles;
 using System;
 using System.Collections.Generic;
@@ -53,7 +54,7 @@ namespace UsnParser
             {
                 ZeroMemory(cujdBuffer, sizeCujd);
                 Marshal.StructureToPtr(cujd, cujdBuffer, true);
-                var fOk = DeviceIoControl(
+                var bSuccess = DeviceIoControl(
                    _usnJournalRootHandle,
                    FSCTL_CREATE_USN_JOURNAL,
                    cujdBuffer,
@@ -62,42 +63,6 @@ namespace UsnParser
                    0,
                    out _,
                    IntPtr.Zero);
-                if (!fOk)
-                {
-                    var lastError = Marshal.GetLastWin32Error();
-                    throw new Win32Exception(lastError);
-                }
-            }
-            finally
-            {
-                Marshal.FreeHGlobal(cujdBuffer);
-            }
-        }
-
-        public void DeleteUsnJournal(USN_JOURNAL_DATA_V0 journalState)
-        {
-            if (!_isNtfsVolume)
-                throw new Exception($"{_driveInfo.Name} is not an NTFS volume.");
-
-            if (_usnJournalRootHandle.IsInvalid)
-                throw new Win32Exception((int)Win32Errors.ERROR_INVALID_HANDLE);
-
-            var dujd = new DELETE_USN_JOURNAL_DATA
-            {
-                UsnJournalID = journalState.UsnJournalID,
-                DeleteFlags = (uint)UsnJournalDeleteFlags.USN_DELETE_FLAG_DELETE
-            };
-
-            var sizeDujd = Marshal.SizeOf(dujd);
-            var dujdBuffer = Marshal.AllocHGlobal(sizeDujd);
-
-            try
-            {
-                ZeroMemory(dujdBuffer, sizeDujd);
-                Marshal.StructureToPtr(dujd, dujdBuffer, true);
-                var bSuccess = DeviceIoControl(_usnJournalRootHandle, FSCTL_DELETE_USN_JOURNAL, dujdBuffer, sizeDujd,
-                    IntPtr.Zero, 0, out _, IntPtr.Zero);
-
                 if (!bSuccess)
                 {
                     var lastError = Marshal.GetLastWin32Error();
@@ -106,8 +71,7 @@ namespace UsnParser
             }
             finally
             {
-
-                Marshal.FreeHGlobal(dujdBuffer);
+                Marshal.FreeHGlobal(cujdBuffer);
             }
         }
 
@@ -269,7 +233,29 @@ namespace UsnParser
             if (_usnJournalRootHandle.IsInvalid)
                 throw new Win32Exception((int)Win32Errors.ERROR_INVALID_HANDLE);
 
-            return QueryUsnJournal();
+            try
+            {
+                return QueryUsnJournal();
+            }
+            catch (Win32Exception ex)
+            {
+                if (ex.NativeErrorCode == (int)Win32Errors.ERROR_JOURNAL_NOT_ACTIVE)
+                {
+                    var create = Prompt.GetYesNo($"The change journal of volume {VolumeName} is not active, active it now?",
+                            defaultAnswer: true,
+                            promptColor: ConsoleColor.White,
+                            promptBgColor: ConsoleColor.Black);
+
+                    if (create)
+                    {
+                        // Set default max size to 32MB, default allocation delta to 8MB.
+                        CreateUsnJournal(0x2000000, 0x800000);
+                        return QueryUsnJournal();
+                    }
+                }
+
+                throw;
+            }
         }
 
         public IEnumerable<UsnEntry> GetUsnJournalEntries(USN_JOURNAL_DATA_V0 previousUsnState, uint reasonMask, string keyword, FilterOption filterOption, out USN_JOURNAL_DATA_V0 newUsnState)
@@ -420,9 +406,9 @@ namespace UsnParser
                 // Read USN journal entries.
                 while (bReadMore)
                 {
-                    var bRtn = DeviceIoControl(_usnJournalRootHandle, FSCTL_READ_USN_JOURNAL, rujdBuffer, sizeRujd,
+                    var bSuccess = DeviceIoControl(_usnJournalRootHandle, FSCTL_READ_USN_JOURNAL, rujdBuffer, sizeRujd,
                         pbData, pbDataSize, out var outBytesReturned, IntPtr.Zero);
-                    if (bRtn)
+                    if (bSuccess)
                     {
                         var pUsnRecord = new IntPtr(pbData.ToInt64() + sizeof(ulong));
 
@@ -540,7 +526,7 @@ namespace UsnParser
 
         private USN_JOURNAL_DATA_V0 QueryUsnJournal()
         {
-            var result = DeviceIoControl(
+            var bSuccess = DeviceIoControl(
                 _usnJournalRootHandle,
                 FSCTL_QUERY_USN_JOURNAL,
                 IntPtr.Zero,
@@ -550,7 +536,7 @@ namespace UsnParser
                 out _,
                 IntPtr.Zero);
 
-            if (!result)
+            if (!bSuccess)
             {
                 var lastError = Marshal.GetLastWin32Error();
                 throw new Win32Exception(lastError);
@@ -561,7 +547,15 @@ namespace UsnParser
 
         private int QueryUsnJournal(ref USN_JOURNAL_DATA_V0 usnJournalState)
         {
-            DeviceIoControl(_usnJournalRootHandle, FSCTL_QUERY_USN_JOURNAL, IntPtr.Zero, 0, out usnJournalState, Marshal.SizeOf(usnJournalState), out _, IntPtr.Zero);
+            DeviceIoControl(
+                _usnJournalRootHandle,
+                FSCTL_QUERY_USN_JOURNAL,
+                IntPtr.Zero,
+                0,
+                out usnJournalState,
+                Marshal.SizeOf(usnJournalState),
+                out _,
+                IntPtr.Zero);
             return Marshal.GetLastWin32Error();
         }
 
