@@ -1,49 +1,48 @@
 # NTFS USN Parser
 
- A command utility to monitor and filter NTFS USN Journals.
+ A command utility for NTFS to search the MFT & monitoring the changes of USN Journal.
 
 ## Usage
 
 ```
-NTFS USN Journal parser 0.1.1
+NTFS USN Journal parser 0.1.3
 
-A command utility to monitor and filter NTFS USN Journals.
+A command utility for NTFS to search the MFT & monitoring the changes of USN Journal.
 
-Usage: UsnParser [options] <Volume>
-
-Arguments:
-  Volume          Volume pathname. <Required>
+Usage: UsnParser [command] [options]
 
 Options:
-  --version       Show version information
-  -?|-h|--help    Show help information
-  -m|--monitor    Monitor real-time USN journal
-  -s|--search     Search NTFS Master File Table
-  -f|--filter     Filter USN journal by entry name
-  -fo|--FileOnly  Get only the file entries
-  -do|--DirOnly   Get only the directory entries
+  --version  Show version information.
+  -h|--help  Show help information.
+
+Commands:
+  monitor    Monitor real-time USN journal changes
+  read       Read history USN journal entries
+  search     Search the Master File Table
+
+Run 'UsnParser [command] -h|--help' for more information about a command.
 ```
 
 ### Example
 
 ```bash
 # Search Master File Table of volume C, print out all paths who's file name is "Readme.md"
-UsnParser -s -f "Readme.md" C: 
+UsnParser search C: Readme.md 
 ```
 
 ```bash
 # Print out all the USN records of file "Readme.md" in volume C.
-UsnParser -f "Readme.md" C: 
+UsnParser read C: -f Readme.md 
 ```
 
 ```bash
 # Monitor realtime USN reacords of volume C.
-UsnParser -m C: 
+UsnParser monitor C: 
 ```
 
 ```bash
 # Monitor realtime USN reacords of volume C, only print out txt files whose name starts with "abc".
-UsnParser -r C: -f abc*.txt 
+UsnParser monitor C: -f abc*.txt 
 ```
 
 ## Dependencies 
