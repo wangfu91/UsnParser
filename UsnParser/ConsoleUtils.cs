@@ -27,13 +27,13 @@ namespace UsnParser
 
         public static void PrintUsnJournalState(IConsole console, USN_JOURNAL_DATA_V0 usnData)
         {
-            console.WriteLine($"{"Journal ID:",-20}{usnData.UsnJournalID:X}");
-            console.WriteLine($"{"First USN:",-20}{usnData.FirstUsn:X}");
-            console.WriteLine($"{"Next USN:",-20}{usnData.NextUsn:X}");
-            console.WriteLine($"{"Lowest Valid USN:",-20}{usnData.LowestValidUsn:X}");
-            console.WriteLine($"{"Max USN:",-20}{usnData.MaxUsn:X}");
-            console.WriteLine($"{"Max Size:",-20}{usnData.MaximumSize:X}");
-            console.WriteLine($"{"Allocation Delta:",-20}{usnData.AllocationDelta:X}");
+            console.WriteLine($"{"Journal ID:",-20}0x{usnData.UsnJournalID:x16}");
+            console.WriteLine($"{"First USN:",-20}{usnData.FirstUsn}");
+            console.WriteLine($"{"Next USN:",-20}{usnData.NextUsn}");
+            console.WriteLine($"{"Lowest Valid USN:",-20}{usnData.LowestValidUsn}");
+            console.WriteLine($"{"Max USN:",-20}{usnData.MaxUsn}");
+            console.WriteLine($"{"Max Size:",-20}{usnData.MaximumSize}");
+            console.WriteLine($"{"Allocation Delta:",-20}{usnData.AllocationDelta}");
         }
 
         public static void PrintEntryPath(IConsole console, UsnJournal usnJournal, UsnEntry usnEntry)
@@ -51,7 +51,7 @@ namespace UsnParser
         public static void PrintUsnEntry(IConsole console, UsnJournal usnJournal, UsnEntry usnEntry)
         {
             console.WriteLine();
-            console.WriteLine($"{"USN:",-20}{usnEntry.USN:X}");
+            console.WriteLine($"{"USN:",-20}{usnEntry.USN}");
             console.WriteLine(usnEntry.IsFolder
                 ? $"{"Directory:",-20}{usnEntry.Name}"
                 : $"{"File:",-20}{usnEntry.Name}");
@@ -64,8 +64,8 @@ namespace UsnParser
             if (usnEntry.TimeStamp > 0)
                 console.WriteLine($"{"Timestamp:",-20}{DateTime.FromFileTimeUtc(usnEntry.TimeStamp).ToLocalTime()}");
 
-            console.WriteLine($"{"File ID:",-20}{usnEntry.FileReferenceNumber:X}");
-            console.WriteLine($"{"Parent File ID:",-20}{usnEntry.ParentFileReferenceNumber:X}");
+            console.WriteLine($"{"File ID:",-20}{usnEntry.FileReferenceNumber:x}");
+            console.WriteLine($"{"Parent File ID:",-20}{usnEntry.ParentFileReferenceNumber:x}");
 
             var reason = ((UsnReason)usnEntry.Reason).ToString().Replace(',', '|');
             console.WriteLine($"{"Reason:",-20}{reason}");
@@ -73,6 +73,5 @@ namespace UsnParser
             var sourceInfo = ((UsnSource)usnEntry.SourceInfo).ToString().Replace(',', '|');
             console.WriteLine($"{"Source Info:",-20}{sourceInfo}");
         }
-
     }
 }
