@@ -1,7 +1,10 @@
 ﻿using Microsoft.Win32.SafeHandles;
 using System;
 using System.IO;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+
+[assembly: DisableRuntimeMarshalling]
 
 namespace UsnParser.Native
 {
@@ -62,8 +65,8 @@ namespace UsnParser.Native
         /// <param name="dwFlagsAndAttributes">File or device attributes and flags (typically FILE_ATTRIBUTE_NORMAL)</param>
         /// <param name="hTemplateFile">IntPtr to a valid handle to a template file with 'GENERIC_READ' access right</param>
         /// <returns>IntPtr handle to the 'lpFileName' file or device or 'INVALID_HANDLE_VALUE'</returns>
-        [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
-        internal static extern SafeFileHandle
+        [LibraryImport("kernel32.dll", SetLastError = true, EntryPoint = "CreateFileW", StringMarshalling = StringMarshalling.Utf16)]
+        internal static partial SafeFileHandle
            CreateFile(string lpFileName,
               uint dwDesiredAccess,
               uint dwShareMode,
@@ -78,9 +81,9 @@ namespace UsnParser.Native
         /// <param name="hFile">Fully qualified name of a file</param>
         /// <param name="lpFileInformation">Out BY_HANDLE_FILE_INFORMATION argument</param>
         /// <returns>'true' if successful, otherwise 'false'</returns>
-        [DllImport("kernel32.dll", SetLastError = true)]
+        [LibraryImport("kernel32.dll", SetLastError = true)]
         [return: MarshalAs(UnmanagedType.Bool)]
-        internal static extern bool GetFileInformationByHandle(SafeFileHandle hFile, out BY_HANDLE_FILE_INFORMATION lpFileInformation);
+        internal static partial bool GetFileInformationByHandle(SafeFileHandle hFile, out BY_HANDLE_FILE_INFORMATION lpFileInformation);
 
         /// <summary>
         /// Sends the 'dwIoControlCode' to the device specified by 'hDevice'.
@@ -94,9 +97,9 @@ namespace UsnParser.Native
         /// <param name="lpBytesReturned">Number of bytes returned in output buffer</param>
         /// <param name="lpOverlapped">IntPtr to an 'OVERLAPPED' structure</param>
         /// <returns>'true' if successful, otherwise 'false'</returns>
-        [DllImport("kernel32.dll", ExactSpelling = true, SetLastError = true, CharSet = CharSet.Auto)]
+        [LibraryImport("kernel32.dll", SetLastError = true)]
         [return: MarshalAs(UnmanagedType.Bool)]
-        internal static extern bool DeviceIoControl(
+        internal static partial bool DeviceIoControl(
            SafeFileHandle hDevice,
            uint dwIoControlCode,
            IntPtr lpInBuffer,
@@ -118,9 +121,9 @@ namespace UsnParser.Native
         /// <param name="lpBytesReturned">Number of bytes returned</param>
         /// <param name="lpOverlapped">Pointer to an 'OVERLAPPED' struture</param>
         /// <returns></returns>
-        [DllImport("kernel32.dll", ExactSpelling = true, SetLastError = true, CharSet = CharSet.Auto)]
+        [LibraryImport("kernel32.dll", SetLastError = true)]
         [return: MarshalAs(UnmanagedType.Bool)]
-        internal static extern bool DeviceIoControl(
+        internal static partial bool DeviceIoControl(
            SafeFileHandle hDevice,
            uint dwIoControlCode,
            IntPtr lpInBuffer,
@@ -132,8 +135,8 @@ namespace UsnParser.Native
 
 
         /// <summary>Sets the number of bytes specified by 'size' of the memory associated with the argument 'ptr' to zero.</summary>
-        [DllImport("kernel32.dll", SetLastError = false, CharSet = CharSet.Unicode, EntryPoint = "RtlZeroMemory")]
-        internal static extern void ZeroMemory(IntPtr ptr, int size);
+        [LibraryImport("kernel32.dll", EntryPoint = "RtlZeroMemory", SetLastError = false)]
+        internal static partial void ZeroMemory(IntPtr ptr, int size);
 
 
         /// <summary>
@@ -151,8 +154,8 @@ namespace UsnParser.Native
         /// <param name="eaBuffer">Pointer to an EA buffer used to pass extended attributes (in)</param>
         /// <param name="eaLength">Length of the EA buffer</param>
         /// <returns>either STATUS_SUCCESS or an appropriate error status. If it returns an error status, the caller can find more information about the cause of the failure by checking the IoStatusBlock</returns>
-        [DllImport("ntdll.dll", ExactSpelling = true, SetLastError = true)]
-        internal static extern int NtCreateFile(out SafeFileHandle handle, FileAccess access,
+        [LibraryImport("ntdll.dll", SetLastError = true)]
+        internal static partial int NtCreateFile(out SafeFileHandle handle, FileAccess access,
             ref OBJECT_ATTRIBUTES objectAttributes, ref IO_STATUS_BLOCK ioStatus, ref long allocSize, uint fileAttributes,
             FileShare share, uint createDisposition, uint createOptions, IntPtr eaBuffer, uint eaLength);
 
@@ -165,8 +168,8 @@ namespace UsnParser.Native
         /// <param name="length"></param>
         /// <param name="fileInformation"></param>
         /// <returns></returns>
-        [DllImport("ntdll.dll", ExactSpelling = true, SetLastError = true)]
-        internal static extern int NtQueryInformationFile(
+        [LibraryImport("ntdll.dll", SetLastError = true)]
+        internal static partial int NtQueryInformationFile(
            SafeFileHandle fileHandle,
            ref IO_STATUS_BLOCK IoStatusBlock,
            IntPtr pInfoBlock,
