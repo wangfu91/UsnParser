@@ -26,7 +26,9 @@ namespace UsnParser
                 => Assembly.GetExecutingAssembly()
                            .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion;
 
+#pragma warning disable CA1822 // Mark members as static
         private int OnExecute(CommandLineApplication app)
+#pragma warning restore CA1822 // Mark members as static
         {
             // This shows help even if the --help option isn't specified
             app.ShowHelp();
@@ -38,7 +40,6 @@ namespace UsnParser
     {
         [Argument(0, Description = "Volume pathname, e.g. C: <Required>")]
         [Required]
-        [MinLength(1)]
         public string Volume { get; set; }
 
         [Option("-fo|--FileOnly", Description = "Only show the file entries")]
