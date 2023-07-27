@@ -8,14 +8,17 @@ using System.IO;
 using System.Runtime.InteropServices;
 using UsnParser.Native;
 using static UsnParser.Native.Win32Api;
+using Vanara.PInvoke;
+using static Vanara.PInvoke.Kernel32;
+using FileAccess = Vanara.PInvoke.Kernel32.FileAccess;
 
 namespace UsnParser
 {
     public class UsnJournal : IDisposable
     {
         private readonly DriveInfo _driveInfo;
-        private readonly bool _isNtfsVolume;
-        private readonly SafeFileHandle _usnJournalRootHandle;
+        private readonly bool _isUsnSupported;
+        private readonly SafeHFILE _usnJournalRootHandle;
 
         public string VolumeName { get; }
 
@@ -24,11 +27,12 @@ namespace UsnParser
             _driveInfo = driveInfo;
             VolumeName = driveInfo.Name;
 
-            _isNtfsVolume = _driveInfo.DriveFormat.Equals("NTFS", StringComparison.OrdinalIgnoreCase);
+            _isUsnSupported = _driveInfo.DriveFormat.Equals("NTFS", StringComparison.OrdinalIgnoreCase)
+                || _driveInfo.DriveFormat.Equals("ReFs", StringComparison.OrdinalIgnoreCase);
 
-            if (!_isNtfsVolume)
+            if (!_isUsnSupported)
             {
-                throw new Exception($"{_driveInfo.Name} is not an NTFS volume.");
+                throw new Exception($"{_driveInfo.Name} is not an NTFS or ReFS volume, which does not support USN change journal.");
             }
 
             _usnJournalRootHandle = GetRootHandle();
@@ -36,7 +40,7 @@ namespace UsnParser
 
         public unsafe void CreateUsnJournal(ulong maxSize, ulong allocationDelta)
         {
-            if (!_isNtfsVolume)
+            if (!_isUsnSupported)
                 throw new Exception($"{_driveInfo.Name} is not an NTFS volume.");
 
             if (_usnJournalRootHandle.IsInvalid)
@@ -52,7 +56,7 @@ namespace UsnParser
             var cujdBuffer = Marshal.AllocHGlobal(sizeCujd);
             try
             {
-                ZeroMemory(cujdBuffer, sizeCujd);
+                RtlZeroMemory(cujdBuffer, sizeCujd);
                 *(CREATE_USN_JOURNAL_DATA*)cujdBuffer = cujd;
                 var bSuccess = DeviceIoControl(
                    _usnJournalRootHandle,
@@ -155,7 +159,7 @@ namespace UsnParser
 
         public unsafe bool TryGetPathFromFileId(ulong frn, out string path)
         {
-            if (!_isNtfsVolume)
+            if (!_isUsnSupported)
                 throw new Exception($"{_driveInfo.Name} is not an NTFS volume.");
 
             if (_usnJournalRootHandle.IsInvalid)
@@ -232,7 +236,7 @@ namespace UsnParser
 
         public USN_JOURNAL_DATA_V0 GetUsnJournalState()
         {
-            if (!_isNtfsVolume)
+            if (!_isUsnSupported)
                 throw new Exception($"{_driveInfo.Name} is not an NTFS volume.");
 
             if (_usnJournalRootHandle.IsInvalid)
@@ -265,7 +269,7 @@ namespace UsnParser
 
         public unsafe IEnumerable<UsnEntry> GetUsnJournalEntries(USN_JOURNAL_DATA_V0 previousUsnState, uint reasonMask, string keyword, FilterOption filterOption, out USN_JOURNAL_DATA_V0 newUsnState)
         {
-            if (!_isNtfsVolume)
+            if (!_isUsnSupported)
                 throw new Exception($"{_driveInfo.Name} is not an NTFS volume.");
 
             if (_usnJournalRootHandle.IsInvalid)
@@ -375,7 +379,7 @@ namespace UsnParser
 
         public IEnumerable<UsnEntry> ReadUsnEntries(USN_JOURNAL_DATA_V0 previousUsnState, uint reasonMask, string keyword, FilterOption filterOption)
         {
-            if (!_isNtfsVolume)
+            if (!_isUsnSupported)
                 throw new Exception($"{_driveInfo.Name} is not an NTFS volume.");
 
             if (_usnJournalRootHandle.IsInvalid)
@@ -483,7 +487,7 @@ namespace UsnParser
 
         public bool IsUsnJournalActive()
         {
-            if (_isNtfsVolume)
+            if (_isUsnSupported)
             {
                 if (!_usnJournalRootHandle.IsInvalid)
                 {
@@ -500,30 +504,30 @@ namespace UsnParser
         {
             USN_JOURNAL_DATA_V0 usnJournalState = default;
 
-            return _isNtfsVolume &&
+            return _isUsnSupported &&
                    !_usnJournalRootHandle.IsInvalid &&
                    QueryUsnJournal(ref usnJournalState) == 0 &&
                    usnJournalPreviousState.UsnJournalID == usnJournalState.UsnJournalID &&
                    usnJournalPreviousState.NextUsn >= usnJournalState.NextUsn;
         }
 
-        private SafeFileHandle GetRootHandle()
+        private SafeHFILE GetRootHandle()
         {
             var vol = string.Concat(@"\\.\", _driveInfo.Name.TrimEnd('\\'));
 
             var rootHandle = CreateFile(
                 vol,
-                GENERIC_READ | GENERIC_WRITE,
-                FILE_SHARE_READ | FILE_SHARE_WRITE,
+                FileAccess.GENERIC_READ | FileAccess.GENERIC_WRITE,
+                FileShare.ReadWrite,
                 default,
-                OPEN_EXISTING,
+                FileMode.Open,
                 0,
-                default);
+                default
+                );
 
             if (rootHandle.IsInvalid)
             {
-                var lastError = Marshal.GetLastWin32Error();
-                throw new Win32Exception(lastError);
+                throw new Win32Exception(Marshal.GetLastWin32Error());
             }
 
             return rootHandle;
@@ -566,11 +570,6 @@ namespace UsnParser
 
 
         #region IDisposable
-
-        ~UsnJournal()
-        {
-            Dispose(false);
-        }
 
         public void Dispose()
         {
