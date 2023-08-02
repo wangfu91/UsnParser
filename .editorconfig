@@ -98,7 +98,7 @@ dotnet_diagnostic.CA1853.severity = warning
 dotnet_diagnostic.CA1854.severity = warning
 dotnet_diagnostic.CA1401.severity = warning
 dotnet_diagnostic.CA1419.severity = warning
-dotnet_diagnostic.CA1421.severity = suggestion
+dotnet_diagnostic.CA1421.severity = error
 
 [*.cs]
 csharp_indent_labels = one_less_than_current
@@ -140,5 +140,6 @@ dotnet_diagnostic.CA1825.severity = warning
 dotnet_diagnostic.CA1841.severity = warning
 dotnet_diagnostic.CA1845.severity = warning
 dotnet_diagnostic.CA1855.severity = warning
-dotnet_diagnostic.SYSLIB1054.severity = warning
+dotnet_diagnostic.SYSLIB1054.severity = suggestion
 dotnet_diagnostic.CA1507.severity = warning
+csharp_style_prefer_primary_constructors = true:suggestion

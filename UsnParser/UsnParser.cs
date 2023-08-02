@@ -7,6 +7,8 @@ using System.Security.Principal;
 using System.Threading;
 using McMaster.Extensions.CommandLineUtils;
 using UsnParser.Native;
+using Vanara.PInvoke;
+using static Vanara.PInvoke.Kernel32;
 
 namespace UsnParser
 {
@@ -104,7 +106,7 @@ namespace UsnParser
             {
                 console.PrintError(ex.Message);
 
-                if (ex is Win32Exception win32Ex && win32Ex.NativeErrorCode == (int)Win32Errors.ERROR_ACCESS_DENIED && !HasAdministratorPrivilege())
+                if (ex is Win32Exception win32Ex && win32Ex.NativeErrorCode == (int)Win32Error.ERROR_ACCESS_DENIED && !HasAdministratorPrivilege())
                 {
                     console.PrintError($"You need system administrator privileges to access the USN journal of {Volume.ToUpper()}.");
                 }
@@ -142,7 +144,7 @@ namespace UsnParser
             {
                 if (token.IsCancellationRequested) return;
 
-                var usnEntries = journal.GetUsnJournalEntries(usnState, Win32Api.USN_REASON_MASK, keyword, filterOption, out usnState);
+                var usnEntries = journal.GetUsnJournalEntries(usnState, NativeMethods.USN_REASON_MASK, keyword, filterOption, out usnState);
 
                 foreach (var entry in usnEntries)
                 {
@@ -204,7 +206,7 @@ namespace UsnParser
                 UsnJournalID = usnJournalId
             };
 
-            var usnEntries = journal.ReadUsnEntries(usnReadState, Win32Api.USN_REASON_MASK, keyword, filterOption);
+            var usnEntries = journal.ReadUsnEntries(usnReadState, NativeMethods.USN_REASON_MASK, keyword, filterOption);
 
             foreach (var entry in usnEntries)
             {
