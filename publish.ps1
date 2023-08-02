@@ -3,7 +3,7 @@ $rids = "win-x64" , "win-arm64"
 Push-Location .\UsnParser
 
 foreach ($rid in $rids) {
-    dotnet publish -c release -r $rid -o ..\publish\$rid --self-contained
+    dotnet publish -c release -r $rid -o ..\publish\$rid --self-contained true
 }
 
 Pop-Location
