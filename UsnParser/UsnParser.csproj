@@ -4,7 +4,7 @@
         <OutputType>Exe</OutputType>
         <TargetFramework>net7.0-windows</TargetFramework>
         <Version>0.1.4</Version>
-        <TrimMode>partial</TrimMode>
+        <TrimMode>full</TrimMode>
         <PublishAot>true</PublishAot>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     </PropertyGroup>
