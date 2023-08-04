@@ -1,20 +1,22 @@
 ﻿using DotNet.Globbing;
 using McMaster.Extensions.CommandLineUtils;
-using Microsoft.Win32.SafeHandles;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.IO;
 using System.Runtime.InteropServices;
 using UsnParser.Native;
-using static UsnParser.Native.Win32Api;
+using Microsoft.Win32.SafeHandles;
+using static UsnParser.Native.Kernel32;
+using static UsnParser.Native.Ntdll;
+using FileAccess = UsnParser.Native.FileAccess;
 
 namespace UsnParser
 {
     public class UsnJournal : IDisposable
     {
         private readonly DriveInfo _driveInfo;
-        private readonly bool _isNtfsVolume;
+        private readonly bool _isUsnSupported;
         private readonly SafeFileHandle _usnJournalRootHandle;
 
         public string VolumeName { get; }
@@ -24,11 +26,12 @@ namespace UsnParser
             _driveInfo = driveInfo;
             VolumeName = driveInfo.Name;
 
-            _isNtfsVolume = _driveInfo.DriveFormat.Equals("NTFS", StringComparison.OrdinalIgnoreCase);
+            _isUsnSupported = _driveInfo.DriveFormat.Equals("NTFS", StringComparison.OrdinalIgnoreCase)
+                || _driveInfo.DriveFormat.Equals("ReFs", StringComparison.OrdinalIgnoreCase);
 
-            if (!_isNtfsVolume)
+            if (!_isUsnSupported)
             {
-                throw new Exception($"{_driveInfo.Name} is not an NTFS volume.");
+                throw new Exception($"{_driveInfo.Name} is not an NTFS or ReFS volume, which does not support USN change journal.");
             }
 
             _usnJournalRootHandle = GetRootHandle();
@@ -36,29 +39,29 @@ namespace UsnParser
 
         public unsafe void CreateUsnJournal(ulong maxSize, ulong allocationDelta)
         {
-            if (!_isNtfsVolume)
+            if (!_isUsnSupported)
                 throw new Exception($"{_driveInfo.Name} is not an NTFS volume.");
 
             if (_usnJournalRootHandle.IsInvalid)
-                throw new Win32Exception((int)Win32Errors.ERROR_INVALID_HANDLE);
+                throw new Win32Exception((int)Win32Error.ERROR_INVALID_HANDLE);
 
-            var cujd = new CREATE_USN_JOURNAL_DATA
+            var createData = new CREATE_USN_JOURNAL_DATA
             {
                 MaximumSize = maxSize,
                 AllocationDelta = allocationDelta
             };
 
-            var sizeCujd = sizeof(CREATE_USN_JOURNAL_DATA);
-            var cujdBuffer = Marshal.AllocHGlobal(sizeCujd);
+            var createDataSize = sizeof(CREATE_USN_JOURNAL_DATA);
+            var createDataBuffer = Marshal.AllocHGlobal(createDataSize);
             try
             {
-                ZeroMemory(cujdBuffer, sizeCujd);
-                *(CREATE_USN_JOURNAL_DATA*)cujdBuffer = cujd;
+                ZeroMemory(createDataBuffer, createDataSize);
+                *(CREATE_USN_JOURNAL_DATA*)createDataBuffer = createData;
                 var bSuccess = DeviceIoControl(
                    _usnJournalRootHandle,
                    FSCTL_CREATE_USN_JOURNAL,
-                   cujdBuffer,
-                   sizeCujd,
+                   createDataBuffer,
+                   createDataSize,
                    IntPtr.Zero,
                    0,
                    out _,
@@ -71,13 +74,17 @@ namespace UsnParser
             }
             finally
             {
-                Marshal.FreeHGlobal(cujdBuffer);
+                Marshal.FreeHGlobal(createDataBuffer);
             }
         }
 
         public IEnumerable<UsnEntry> EnumerateUsnEntries(string keyword, FilterOption filterOption)
         {
             var usnState = QueryUsnJournal();
+
+            // Note: 
+            // In ReFS there is no MFT and subsequently no MFT entries.
+            // http://www.resilientfilesystem.co.uk/refs-master-file-table
 
             // Set up MFT_ENUM_DATA_V0 structure.
             var mftData = new MFT_ENUM_DATA_V0
@@ -155,17 +162,16 @@ namespace UsnParser
 
         public unsafe bool TryGetPathFromFileId(ulong frn, out string path)
         {
-            if (!_isNtfsVolume)
+            if (!_isUsnSupported)
                 throw new Exception($"{_driveInfo.Name} is not an NTFS volume.");
 
             if (_usnJournalRootHandle.IsInvalid)
-                throw new Win32Exception((int)Win32Errors.ERROR_INVALID_HANDLE);
+                throw new Win32Exception((int)Win32Error.ERROR_INVALID_HANDLE);
 
             path = null;
             if (frn == 0) return false;
 
             long allocSize = 0;
-            UNICODE_STRING unicodeString;
             var objAttributes = new OBJECT_ATTRIBUTES();
             var ioStatusBlock = new IO_STATUS_BLOCK();
 
@@ -173,30 +179,32 @@ namespace UsnParser
             var refPtr = Marshal.AllocHGlobal(8);
             var objAttIntPtr = Marshal.AllocHGlobal(sizeof(OBJECT_ATTRIBUTES));
 
-            // Pointer >> fileid.
+            // Pointer >> fileId.
             Marshal.WriteInt64(refPtr, (long)frn);
 
+            UNICODE_STRING unicodeString;
             unicodeString.Length = 8;
             unicodeString.MaximumLength = 8;
             unicodeString.Buffer = refPtr;
             *(UNICODE_STRING*)objAttIntPtr = unicodeString;
 
             // InitializeObjectAttributes.
-            objAttributes.Length = (uint)sizeof(OBJECT_ATTRIBUTES);
-            objAttributes.ObjectName = objAttIntPtr;
-            objAttributes.RootDirectory = _usnJournalRootHandle.DangerousGetHandle();
-            objAttributes.Attributes = (int)ObjectAttribute.OBJ_CASE_INSENSITIVE;
+            objAttributes.length = (uint)sizeof(OBJECT_ATTRIBUTES);
+            objAttributes.objectName = objAttIntPtr;
+            objAttributes.rootDirectory = _usnJournalRootHandle.DangerousGetHandle();
+            objAttributes.attributes = (int)ObjectAttribute.OBJ_CASE_INSENSITIVE;
             try
             {
                 var bSuccess = NtCreateFile(
                     out var hFile,
-                    FileAccess.Read,
-                    ref objAttributes,
-                    ref ioStatusBlock,
-                    ref allocSize, 0,
+                    FileAccess.GENERIC_READ | FileAccess.GENERIC_WRITE,
+                    objAttributes,
+                    out ioStatusBlock,
+                    allocSize,
+                    0,
                     FileShare.ReadWrite,
-                    (uint)NtFileMode.FILE_OPEN,
-                    (uint)(NtFileCreateOptions.FILE_OPEN_BY_FILE_ID | NtFileCreateOptions.FILE_OPEN_FOR_BACKUP_INTENT),
+                    NtFileMode.FILE_OPEN,
+                    NtFileCreateOptions.FILE_OPEN_BY_FILE_ID | NtFileCreateOptions.FILE_OPEN_FOR_BACKUP_INTENT,
                     IntPtr.Zero,
                     0);
 
@@ -204,7 +212,7 @@ namespace UsnParser
                 {
                     if (bSuccess == 0)
                     {
-                        bSuccess = NtQueryInformationFile(hFile, ref ioStatusBlock, buffer, 4096,
+                        bSuccess = NtQueryInformationFile(hFile, ioStatusBlock, buffer, 4096,
                             FILE_INFORMATION_CLASS.FileNameInformation);
 
                         if (bSuccess == 0)
@@ -232,11 +240,11 @@ namespace UsnParser
 
         public USN_JOURNAL_DATA_V0 GetUsnJournalState()
         {
-            if (!_isNtfsVolume)
+            if (!_isUsnSupported)
                 throw new Exception($"{_driveInfo.Name} is not an NTFS volume.");
 
             if (_usnJournalRootHandle.IsInvalid)
-                throw new Win32Exception((int)Win32Errors.ERROR_INVALID_HANDLE);
+                throw new Win32Exception((int)Win32Error.ERROR_INVALID_HANDLE);
 
             try
             {
@@ -244,7 +252,7 @@ namespace UsnParser
             }
             catch (Win32Exception ex)
             {
-                if (ex.NativeErrorCode == (int)Win32Errors.ERROR_JOURNAL_NOT_ACTIVE)
+                if (ex.NativeErrorCode == (int)Win32Error.ERROR_JOURNAL_NOT_ACTIVE)
                 {
                     var create = Prompt.GetYesNo($"The change journal of volume {VolumeName} is not active, active it now?",
                             defaultAnswer: true,
@@ -265,11 +273,11 @@ namespace UsnParser
 
         public unsafe IEnumerable<UsnEntry> GetUsnJournalEntries(USN_JOURNAL_DATA_V0 previousUsnState, uint reasonMask, string keyword, FilterOption filterOption, out USN_JOURNAL_DATA_V0 newUsnState)
         {
-            if (!_isNtfsVolume)
+            if (!_isUsnSupported)
                 throw new Exception($"{_driveInfo.Name} is not an NTFS volume.");
 
             if (_usnJournalRootHandle.IsInvalid)
-                throw new Win32Exception((int)Win32Errors.ERROR_INVALID_HANDLE);
+                throw new Win32Exception((int)Win32Error.ERROR_INVALID_HANDLE);
 
             var usnEntries = new List<UsnEntry>();
             newUsnState = QueryUsnJournal();
@@ -281,28 +289,34 @@ namespace UsnParser
             var pbData = Marshal.AllocHGlobal(pbDataSize);
             ZeroMemory(pbData, pbDataSize);
 
-            var rujd = new READ_USN_JOURNAL_DATA_V0
+            var readData = new READ_USN_JOURNAL_DATA_V0
             {
                 StartUsn = previousUsnState.NextUsn,
                 ReasonMask = reasonMask,
                 ReturnOnlyOnClose = 0,
                 Timeout = 0,
                 BytesToWaitFor = 1,
-                UsnJournalId = previousUsnState.UsnJournalID
+                UsnJournalID = previousUsnState.UsnJournalID
             };
 
-            var sizeRujd = sizeof(READ_USN_JOURNAL_DATA_V0);
-            var rujdBuffer = Marshal.AllocHGlobal(sizeRujd);
-            ZeroMemory(rujdBuffer, sizeRujd);
-            *(READ_USN_JOURNAL_DATA_V0*)rujdBuffer = rujd;
+            var readDataSize = sizeof(READ_USN_JOURNAL_DATA_V0);
+            var readDataBuffer = Marshal.AllocHGlobal(readDataSize);
+            ZeroMemory(readDataBuffer, readDataSize);
+            *(READ_USN_JOURNAL_DATA_V0*)readDataBuffer = readData;
 
             try
             {
                 // Read USN journal entries.
                 while (bReadMore)
                 {
-                    var bSuccess = DeviceIoControl(_usnJournalRootHandle, FSCTL_READ_USN_JOURNAL, rujdBuffer, sizeRujd,
-                        pbData, pbDataSize, out var bytesRemaining, IntPtr.Zero);
+                    var bSuccess = DeviceIoControl(_usnJournalRootHandle,
+                                                   FSCTL_READ_USN_JOURNAL,
+                                                   readDataBuffer,
+                                                   readDataSize,
+                                                   pbData,
+                                                   pbDataSize,
+                                                   out var bytesRemaining,
+                                                   IntPtr.Zero);
                     if (bSuccess)
                     {
                         var pUsnRecord = new IntPtr(pbData.ToInt64() + sizeof(ulong));
@@ -351,7 +365,7 @@ namespace UsnParser
                     else
                     {
                         var lastError = Marshal.GetLastWin32Error();
-                        if (lastError != (int)Win32Errors.ERROR_HANDLE_EOF)
+                        if (lastError != (int)Win32Error.ERROR_HANDLE_EOF)
                             throw new Win32Exception(lastError);
 
                         break;
@@ -361,12 +375,12 @@ namespace UsnParser
                     if (nextUsn >= newUsnState.NextUsn)
                         break;
 
-                    Marshal.WriteInt64(rujdBuffer, nextUsn);
+                    Marshal.WriteInt64(readDataBuffer, nextUsn);
                 }
             }
             finally
             {
-                Marshal.FreeHGlobal(rujdBuffer);
+                Marshal.FreeHGlobal(readDataBuffer);
                 Marshal.FreeHGlobal(pbData);
             }
 
@@ -375,11 +389,11 @@ namespace UsnParser
 
         public IEnumerable<UsnEntry> ReadUsnEntries(USN_JOURNAL_DATA_V0 previousUsnState, uint reasonMask, string keyword, FilterOption filterOption)
         {
-            if (!_isNtfsVolume)
+            if (!_isUsnSupported)
                 throw new Exception($"{_driveInfo.Name} is not an NTFS volume.");
 
             if (_usnJournalRootHandle.IsInvalid)
-                throw new Win32Exception((int)Win32Errors.ERROR_INVALID_HANDLE);
+                throw new Win32Exception((int)Win32Error.ERROR_INVALID_HANDLE);
 
             // Get current USN journal state.
             var newUsnState = QueryUsnJournal();
@@ -391,28 +405,34 @@ namespace UsnParser
             var pbData = Marshal.AllocHGlobal(pbDataSize);
             ZeroMemory(pbData, pbDataSize);
 
-            var rujd = new READ_USN_JOURNAL_DATA_V0
+            var readData = new READ_USN_JOURNAL_DATA_V0
             {
                 StartUsn = previousUsnState.NextUsn,
                 ReasonMask = reasonMask,
                 ReturnOnlyOnClose = 0,
                 Timeout = 0,
                 BytesToWaitFor = 0,
-                UsnJournalId = previousUsnState.UsnJournalID
+                UsnJournalID = previousUsnState.UsnJournalID
             };
 
-            var sizeRujd = Marshal.SizeOf(rujd);
-            var rujdBuffer = Marshal.AllocHGlobal(sizeRujd);
-            ZeroMemory(rujdBuffer, sizeRujd);
-            Marshal.StructureToPtr(rujd, rujdBuffer, true);
+            var readDataSize = Marshal.SizeOf(readData);
+            var readDataBuffer = Marshal.AllocHGlobal(readDataSize);
+            ZeroMemory(readDataBuffer, readDataSize);
+            Marshal.StructureToPtr(readData, readDataBuffer, true);
 
             try
             {
                 // Read USN journal entries.
                 while (bReadMore)
                 {
-                    var bSuccess = DeviceIoControl(_usnJournalRootHandle, FSCTL_READ_USN_JOURNAL, rujdBuffer, sizeRujd,
-                        pbData, pbDataSize, out var outBytesReturned, IntPtr.Zero);
+                    var bSuccess = DeviceIoControl(_usnJournalRootHandle,
+                                                   FSCTL_READ_USN_JOURNAL,
+                                                   readDataBuffer,
+                                                   readDataSize,
+                                                   pbData,
+                                                   pbDataSize,
+                                                   out var outBytesReturned,
+                                                   IntPtr.Zero);
                     if (bSuccess)
                     {
                         var pUsnRecord = new IntPtr(pbData.ToInt64() + sizeof(ulong));
@@ -461,7 +481,7 @@ namespace UsnParser
                     else
                     {
                         var lastError = Marshal.GetLastWin32Error();
-                        if (lastError != (int)Win32Errors.ERROR_HANDLE_EOF)
+                        if (lastError != (int)Win32Error.ERROR_HANDLE_EOF)
                             throw new Win32Exception(lastError);
 
                         break;
@@ -471,25 +491,30 @@ namespace UsnParser
                     if (nextUsn >= newUsnState.NextUsn)
                         break;
 
-                    Marshal.WriteInt64(rujdBuffer, nextUsn);
+                    Marshal.WriteInt64(readDataBuffer, nextUsn);
                 }
             }
             finally
             {
-                Marshal.FreeHGlobal(rujdBuffer);
+                Marshal.FreeHGlobal(readDataBuffer);
                 Marshal.FreeHGlobal(pbData);
             }
         }
 
         public bool IsUsnJournalActive()
         {
-            if (_isNtfsVolume)
+            if (_isUsnSupported)
             {
                 if (!_usnJournalRootHandle.IsInvalid)
                 {
-                    var usnJournalCurrentState = new USN_JOURNAL_DATA_V0();
-                    var lastError = QueryUsnJournal(ref usnJournalCurrentState);
-                    return lastError == 0;
+                    try
+                    {
+                        var usnJournalCurrentState = QueryUsnJournal();
+                    }
+                    catch (Win32Exception)
+                    {
+                        return false;
+                    }
                 }
             }
 
@@ -498,13 +523,21 @@ namespace UsnParser
 
         public bool IsUsnJournalValid(USN_JOURNAL_DATA_V0 usnJournalPreviousState)
         {
-            USN_JOURNAL_DATA_V0 usnJournalState = default;
+            if (!_isUsnSupported) return false;
+            if (_usnJournalRootHandle.IsInvalid) return false;
 
-            return _isNtfsVolume &&
-                   !_usnJournalRootHandle.IsInvalid &&
-                   QueryUsnJournal(ref usnJournalState) == 0 &&
-                   usnJournalPreviousState.UsnJournalID == usnJournalState.UsnJournalID &&
-                   usnJournalPreviousState.NextUsn >= usnJournalState.NextUsn;
+            try
+            {
+                var usnJournalState = QueryUsnJournal();
+                if (usnJournalPreviousState.UsnJournalID != usnJournalState.UsnJournalID) return false;
+                if (usnJournalPreviousState.NextUsn < usnJournalState.NextUsn) return false;
+
+                return true;
+            }
+            catch(Win32Exception)
+            {
+                return false;
+            }
         }
 
         private SafeFileHandle GetRootHandle()
@@ -513,17 +546,17 @@ namespace UsnParser
 
             var rootHandle = CreateFile(
                 vol,
-                GENERIC_READ | GENERIC_WRITE,
-                FILE_SHARE_READ | FILE_SHARE_WRITE,
+                FileAccess.GENERIC_READ | FileAccess.GENERIC_WRITE,
+                FileShare.ReadWrite,
                 default,
-                OPEN_EXISTING,
+                FileMode.Open,
                 0,
-                default);
+                default
+                );
 
             if (rootHandle.IsInvalid)
             {
-                var lastError = Marshal.GetLastWin32Error();
-                throw new Win32Exception(lastError);
+                throw new Win32Exception(Marshal.GetLastWin32Error());
             }
 
             return rootHandle;
@@ -531,14 +564,16 @@ namespace UsnParser
 
         private unsafe USN_JOURNAL_DATA_V0 QueryUsnJournal()
         {
+            var journalDataSize = sizeof(USN_JOURNAL_DATA_V0);
+            IntPtr usnJournalStatePtr = Marshal.AllocHGlobal(journalDataSize);
             var bSuccess = DeviceIoControl(
                 _usnJournalRootHandle,
                 FSCTL_QUERY_USN_JOURNAL,
                 IntPtr.Zero,
                 0,
-                out var usnJournalState,
-                sizeof(USN_JOURNAL_DATA_V0),
-                out _,
+                usnJournalStatePtr,
+                journalDataSize,
+                out var _,
                 IntPtr.Zero);
 
             if (!bSuccess)
@@ -547,30 +582,10 @@ namespace UsnParser
                 throw new Win32Exception(lastError);
             }
 
-            return usnJournalState;
+            return Marshal.PtrToStructure<USN_JOURNAL_DATA_V0>(usnJournalStatePtr);
         }
-
-        private unsafe int QueryUsnJournal(ref USN_JOURNAL_DATA_V0 usnJournalState)
-        {
-            DeviceIoControl(
-                _usnJournalRootHandle,
-                FSCTL_QUERY_USN_JOURNAL,
-                IntPtr.Zero,
-                0,
-                out usnJournalState,
-                sizeof(USN_JOURNAL_DATA_V0),
-                out _,
-                IntPtr.Zero);
-            return Marshal.GetLastWin32Error();
-        }
-
 
         #region IDisposable
-
-        ~UsnJournal()
-        {
-            Dispose(false);
-        }
 
         public void Dispose()
         {

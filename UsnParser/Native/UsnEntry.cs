@@ -54,7 +54,7 @@ namespace UsnParser.Native
         /// <summary>The 32bit File Attributes.</summary>
         private readonly uint _fileAttributes;
 
-        public bool IsFolder => (_fileAttributes & Win32Api.FILE_ATTRIBUTE_DIRECTORY) != 0;
+        public bool IsFolder => (_fileAttributes & (uint)FileFlagsAndAttributes.FILE_ATTRIBUTE_DIRECTORY) != 0;
 
         /// <summary>USN Record Constructor.</summary>
         /// <param name="ptrToUsnRecord">Buffer pointer to first byte of the USN Record</param>

@@ -1,5 +1,6 @@
 ﻿namespace UsnParser.Native
 {
+    /// <summary>Specifies the action to perform if the file does or does not exist.</summary>
     public enum NtFileMode
     {
         /// <summary>Replaces the file if it exists. Creates the file if it doesn't exist.</summary>

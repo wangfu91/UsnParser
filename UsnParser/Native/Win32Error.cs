@@ -1,6 +1,6 @@
 ﻿namespace UsnParser.Native
 {
-    public enum Win32Errors
+    public enum Win32Error
     {
         INVALID_HANDLE_VALUE = -1,
         ERROR_SUCCESS = 0,
