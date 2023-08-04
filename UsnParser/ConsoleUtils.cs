@@ -1,7 +1,6 @@
 ﻿using McMaster.Extensions.CommandLineUtils;
 using System;
 using UsnParser.Native;
-using static Vanara.PInvoke.Kernel32;
 
 namespace UsnParser
 {

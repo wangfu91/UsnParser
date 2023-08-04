@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Runtime.InteropServices;
-using Vanara.PInvoke;
 
 namespace UsnParser.Native
 {

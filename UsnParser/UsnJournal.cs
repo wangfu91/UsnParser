@@ -6,10 +6,10 @@ using System.ComponentModel;
 using System.IO;
 using System.Runtime.InteropServices;
 using UsnParser.Native;
-using static Vanara.PInvoke.Kernel32;
-using FileAccess = Vanara.PInvoke.Kernel32.FileAccess;
-using static Vanara.PInvoke.NtDll;
-using Vanara.PInvoke;
+using Microsoft.Win32.SafeHandles;
+using static UsnParser.Native.Kernel32;
+using static UsnParser.Native.Ntdll;
+using FileAccess = UsnParser.Native.FileAccess;
 
 namespace UsnParser
 {
@@ -17,7 +17,7 @@ namespace UsnParser
     {
         private readonly DriveInfo _driveInfo;
         private readonly bool _isUsnSupported;
-        private readonly SafeHFILE _usnJournalRootHandle;
+        private readonly SafeFileHandle _usnJournalRootHandle;
 
         public string VolumeName { get; }
 
@@ -45,23 +45,23 @@ namespace UsnParser
             if (_usnJournalRootHandle.IsInvalid)
                 throw new Win32Exception((int)Win32Error.ERROR_INVALID_HANDLE);
 
-            var cujd = new CREATE_USN_JOURNAL_DATA
+            var createData = new CREATE_USN_JOURNAL_DATA
             {
                 MaximumSize = maxSize,
                 AllocationDelta = allocationDelta
             };
 
-            var sizeCujd = sizeof(CREATE_USN_JOURNAL_DATA);
-            var cujdBuffer = Marshal.AllocHGlobal(sizeCujd);
+            var createDataSize = sizeof(CREATE_USN_JOURNAL_DATA);
+            var createDataBuffer = Marshal.AllocHGlobal(createDataSize);
             try
             {
-                RtlZeroMemory(cujdBuffer, sizeCujd);
-                *(CREATE_USN_JOURNAL_DATA*)cujdBuffer = cujd;
+                ZeroMemory(createDataBuffer, createDataSize);
+                *(CREATE_USN_JOURNAL_DATA*)createDataBuffer = createData;
                 var bSuccess = DeviceIoControl(
                    _usnJournalRootHandle,
-                   IOControlCode.FSCTL_CREATE_USN_JOURNAL,
-                   cujdBuffer,
-                   (uint)sizeCujd,
+                   FSCTL_CREATE_USN_JOURNAL,
+                   createDataBuffer,
+                   createDataSize,
                    IntPtr.Zero,
                    0,
                    out _,
@@ -74,7 +74,7 @@ namespace UsnParser
             }
             finally
             {
-                Marshal.FreeHGlobal(cujdBuffer);
+                Marshal.FreeHGlobal(createDataBuffer);
             }
         }
 
@@ -93,22 +93,22 @@ namespace UsnParser
             var mftDataSize = Marshal.SizeOf(mftData);
             var mftDataBuffer = Marshal.AllocHGlobal(mftDataSize);
 
-            RtlZeroMemory(mftDataBuffer, mftDataSize);
+            ZeroMemory(mftDataBuffer, mftDataSize);
             Marshal.StructureToPtr(mftData, mftDataBuffer, true);
 
 
             // Set up the data buffer which receives the USN_RECORD data.
             const int pDataSize = sizeof(ulong) + 10000;
             var pData = Marshal.AllocHGlobal(pDataSize);
-            RtlZeroMemory(pData, pDataSize);
+            ZeroMemory(pData, pDataSize);
 
 
             // Gather up volume's directories.
             while (DeviceIoControl(
                 _usnJournalRootHandle,
-                IOControlCode.FSCTL_ENUM_USN_DATA,
+                FSCTL_ENUM_USN_DATA,
                 mftDataBuffer,
-                (uint)mftDataSize,
+                mftDataSize,
                 pData,
                 pDataSize,
                 out var outBytesReturned,
@@ -168,7 +168,6 @@ namespace UsnParser
             if (frn == 0) return false;
 
             long allocSize = 0;
-            UNICODE_STRING unicodeString;
             var objAttributes = new OBJECT_ATTRIBUTES();
             var ioStatusBlock = new IO_STATUS_BLOCK();
 
@@ -176,9 +175,10 @@ namespace UsnParser
             var refPtr = Marshal.AllocHGlobal(8);
             var objAttIntPtr = Marshal.AllocHGlobal(sizeof(OBJECT_ATTRIBUTES));
 
-            // Pointer >> fileid.
+            // Pointer >> fileId.
             Marshal.WriteInt64(refPtr, (long)frn);
 
+            UNICODE_STRING unicodeString;
             unicodeString.Length = 8;
             unicodeString.MaximumLength = 8;
             unicodeString.Buffer = refPtr;
@@ -193,7 +193,7 @@ namespace UsnParser
             {
                 var bSuccess = NtCreateFile(
                     out var hFile,
-                    ACCESS_MASK.GENERIC_READ,
+                    FileAccess.GENERIC_READ | FileAccess.GENERIC_WRITE,
                     objAttributes,
                     out ioStatusBlock,
                     allocSize,
@@ -208,7 +208,7 @@ namespace UsnParser
                 {
                     if (bSuccess == 0)
                     {
-                        bSuccess = NativeMethods.NtQueryInformationFile(hFile, ref ioStatusBlock, buffer, 4096,
+                        bSuccess = NtQueryInformationFile(hFile, ioStatusBlock, buffer, 4096,
                             FILE_INFORMATION_CLASS.FileNameInformation);
 
                         if (bSuccess == 0)
@@ -283,9 +283,9 @@ namespace UsnParser
             // Sequentially process the USN journal looking for image file entries.
             const int pbDataSize = sizeof(ulong) * 16384;
             var pbData = Marshal.AllocHGlobal(pbDataSize);
-            RtlZeroMemory(pbData, pbDataSize);
+            ZeroMemory(pbData, pbDataSize);
 
-            var rujd = new READ_USN_JOURNAL_DATA_V0
+            var readData = new READ_USN_JOURNAL_DATA_V0
             {
                 StartUsn = previousUsnState.NextUsn,
                 ReasonMask = reasonMask,
@@ -295,10 +295,10 @@ namespace UsnParser
                 UsnJournalID = previousUsnState.UsnJournalID
             };
 
-            var sizeRujd = sizeof(READ_USN_JOURNAL_DATA_V0);
-            var rujdBuffer = Marshal.AllocHGlobal(sizeRujd);
-            RtlZeroMemory(rujdBuffer, sizeRujd);
-            *(READ_USN_JOURNAL_DATA_V0*)rujdBuffer = rujd;
+            var readDataSize = sizeof(READ_USN_JOURNAL_DATA_V0);
+            var readDataBuffer = Marshal.AllocHGlobal(readDataSize);
+            ZeroMemory(readDataBuffer, readDataSize);
+            *(READ_USN_JOURNAL_DATA_V0*)readDataBuffer = readData;
 
             try
             {
@@ -306,9 +306,9 @@ namespace UsnParser
                 while (bReadMore)
                 {
                     var bSuccess = DeviceIoControl(_usnJournalRootHandle,
-                                                   IOControlCode.FSCTL_READ_USN_JOURNAL,
-                                                   rujdBuffer,
-                                                   (uint)sizeRujd,
+                                                   FSCTL_READ_USN_JOURNAL,
+                                                   readDataBuffer,
+                                                   readDataSize,
                                                    pbData,
                                                    pbDataSize,
                                                    out var bytesRemaining,
@@ -371,12 +371,12 @@ namespace UsnParser
                     if (nextUsn >= newUsnState.NextUsn)
                         break;
 
-                    Marshal.WriteInt64(rujdBuffer, nextUsn);
+                    Marshal.WriteInt64(readDataBuffer, nextUsn);
                 }
             }
             finally
             {
-                Marshal.FreeHGlobal(rujdBuffer);
+                Marshal.FreeHGlobal(readDataBuffer);
                 Marshal.FreeHGlobal(pbData);
             }
 
@@ -399,9 +399,9 @@ namespace UsnParser
             // Sequentially process the USN journal looking for image file entries.
             const int pbDataSize = sizeof(ulong) * 16384;
             var pbData = Marshal.AllocHGlobal(pbDataSize);
-            RtlZeroMemory(pbData, pbDataSize);
+            ZeroMemory(pbData, pbDataSize);
 
-            var rujd = new READ_USN_JOURNAL_DATA_V0
+            var readData = new READ_USN_JOURNAL_DATA_V0
             {
                 StartUsn = previousUsnState.NextUsn,
                 ReasonMask = reasonMask,
@@ -411,10 +411,10 @@ namespace UsnParser
                 UsnJournalID = previousUsnState.UsnJournalID
             };
 
-            var sizeRujd = Marshal.SizeOf(rujd);
-            var rujdBuffer = Marshal.AllocHGlobal(sizeRujd);
-            RtlZeroMemory(rujdBuffer, sizeRujd);
-            Marshal.StructureToPtr(rujd, rujdBuffer, true);
+            var readDataSize = Marshal.SizeOf(readData);
+            var rujdBuffer = Marshal.AllocHGlobal(readDataSize);
+            ZeroMemory(rujdBuffer, readDataSize);
+            Marshal.StructureToPtr(readData, rujdBuffer, true);
 
             try
             {
@@ -422,9 +422,9 @@ namespace UsnParser
                 while (bReadMore)
                 {
                     var bSuccess = DeviceIoControl(_usnJournalRootHandle,
-                                                   IOControlCode.FSCTL_READ_USN_JOURNAL,
+                                                   FSCTL_READ_USN_JOURNAL,
                                                    rujdBuffer,
-                                                   (uint)sizeRujd,
+                                                   readDataSize,
                                                    pbData,
                                                    pbDataSize,
                                                    out var outBytesReturned,
@@ -536,7 +536,7 @@ namespace UsnParser
             }
         }
 
-        private SafeHFILE GetRootHandle()
+        private SafeFileHandle GetRootHandle()
         {
             var vol = string.Concat(@"\\.\", _driveInfo.Name.TrimEnd('\\'));
 
@@ -564,11 +564,11 @@ namespace UsnParser
             IntPtr usnJournalStatePtr = Marshal.AllocHGlobal(journalDataSize);
             var bSuccess = DeviceIoControl(
                 _usnJournalRootHandle,
-                IOControlCode.FSCTL_QUERY_USN_JOURNAL,
+                FSCTL_QUERY_USN_JOURNAL,
                 IntPtr.Zero,
                 0,
                 usnJournalStatePtr,
-                (uint)journalDataSize,
+                journalDataSize,
                 out var _,
                 IntPtr.Zero);
 

@@ -1,5 +1,4 @@
 ﻿using System;
-using static Vanara.PInvoke.NtDll;
 
 namespace UsnParser.Native
 {
