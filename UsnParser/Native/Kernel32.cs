@@ -38,7 +38,7 @@ namespace UsnParser.Native
         /// <param name="Destination">A pointer to the memory block to be filled with zeros.</param>
         /// <param name="Length">The number of bytes to fill with zeros.</param>
         // https://docs.microsoft.com/en-us/windows-hardware/drivers/ddi/content/wdm/nf-wdm-rtlzeromemory
-        [LibraryImport("kernel32.dll", SetLastError = false)]
+        [LibraryImport("kernel32.dll", EntryPoint = "RtlZeroMemory", SetLastError = false)]
         internal static partial void ZeroMemory(IntPtr Destination, int Length);
 
         /// <summary>
