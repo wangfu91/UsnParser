@@ -1,6 +1,6 @@
-# NTFS USN Parser
+# Windows USN Change Journal Parser
 
- A command utility for NTFS to search the MFT & monitoring the changes of USN Journal.
+ A command utility for NTFS/ReFS to search the MFT & monitoring the changes of USN Journal.
 
 ## Usage
 
