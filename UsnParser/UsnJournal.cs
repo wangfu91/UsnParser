@@ -82,6 +82,10 @@ namespace UsnParser
         {
             var usnState = QueryUsnJournal();
 
+            // Note: 
+            // In ReFS there is no MFT and subsequently no MFT entries.
+            // http://www.resilientfilesystem.co.uk/refs-master-file-table
+
             // Set up MFT_ENUM_DATA_V0 structure.
             var mftData = new MFT_ENUM_DATA_V0
             {
