@@ -416,9 +416,9 @@ namespace UsnParser
             };
 
             var readDataSize = Marshal.SizeOf(readData);
-            var rujdBuffer = Marshal.AllocHGlobal(readDataSize);
-            ZeroMemory(rujdBuffer, readDataSize);
-            Marshal.StructureToPtr(readData, rujdBuffer, true);
+            var readDataBuffer = Marshal.AllocHGlobal(readDataSize);
+            ZeroMemory(readDataBuffer, readDataSize);
+            Marshal.StructureToPtr(readData, readDataBuffer, true);
 
             try
             {
@@ -427,7 +427,7 @@ namespace UsnParser
                 {
                     var bSuccess = DeviceIoControl(_usnJournalRootHandle,
                                                    FSCTL_READ_USN_JOURNAL,
-                                                   rujdBuffer,
+                                                   readDataBuffer,
                                                    readDataSize,
                                                    pbData,
                                                    pbDataSize,
@@ -491,12 +491,12 @@ namespace UsnParser
                     if (nextUsn >= newUsnState.NextUsn)
                         break;
 
-                    Marshal.WriteInt64(rujdBuffer, nextUsn);
+                    Marshal.WriteInt64(readDataBuffer, nextUsn);
                 }
             }
             finally
             {
-                Marshal.FreeHGlobal(rujdBuffer);
+                Marshal.FreeHGlobal(readDataBuffer);
                 Marshal.FreeHGlobal(pbData);
             }
         }
