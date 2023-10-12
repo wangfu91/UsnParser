@@ -1,5 +1,6 @@
 ﻿using McMaster.Extensions.CommandLineUtils;
 using System;
+using UsnParser;
 using UsnParser.Native;
 
 namespace UsnParser
@@ -61,16 +62,15 @@ namespace UsnParser
                 console.WriteLine($"{"Parent",-20}: {path}");
             }
 
-            if (usnEntry.TimeStamp > 0)
-                console.WriteLine($"{"Timestamp",-20}: {DateTime.FromFileTimeUtc(usnEntry.TimeStamp).ToLocalTime()}");
+            console.WriteLine($"{"Timestamp",-20}: {usnEntry.TimeStamp.ToLocalTime()}");
 
             console.WriteLine($"{"File ID",-20}: {usnEntry.FileReferenceNumber:x}");
             console.WriteLine($"{"Parent File ID",-20}: {usnEntry.ParentFileReferenceNumber:x}");
 
-            var reason = ((UsnReason)usnEntry.Reason).ToString().Replace(',', '|');
+            var reason = usnEntry.Reason.ToString().Replace(',', '|');
             console.WriteLine($"{"Reason",-20}: {reason}");
 
-            var sourceInfo = ((UsnSource)usnEntry.SourceInfo).ToString().Replace(',', '|');
+            var sourceInfo = usnEntry.SourceInfo.ToString().Replace(',', '|');
             console.WriteLine($"{"Source Info",-20}: {sourceInfo}");
         }
     }

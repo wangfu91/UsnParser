@@ -86,78 +86,31 @@ namespace UsnParser
             // In ReFS there is no MFT and subsequently no MFT entries.
             // http://www.resilientfilesystem.co.uk/refs-master-file-table
 
-            // Set up MFT_ENUM_DATA_V0 structure.
-            var mftData = new MFT_ENUM_DATA_V0
+            var mftEnumerator = new MasterFileTableEnumerable(_usnJournalRootHandle, usnState);
+            
+            foreach(var entry in mftEnumerator)
             {
-                StartFileReferenceNumber = 0,
-                LowUsn = 0,
-                HighUsn = usnState.NextUsn
-            };
-
-            var mftDataSize = Marshal.SizeOf(mftData);
-            var mftDataBuffer = Marshal.AllocHGlobal(mftDataSize);
-
-            ZeroMemory(mftDataBuffer, mftDataSize);
-            Marshal.StructureToPtr(mftData, mftDataBuffer, true);
-
-
-            // Set up the data buffer which receives the USN_RECORD data.
-            const int pDataSize = sizeof(ulong) + 10000;
-            var pData = Marshal.AllocHGlobal(pDataSize);
-            ZeroMemory(pData, pDataSize);
-
-
-            // Gather up volume's directories.
-            while (DeviceIoControl(
-                _usnJournalRootHandle,
-                FSCTL_ENUM_USN_DATA,
-                mftDataBuffer,
-                mftDataSize,
-                pData,
-                pDataSize,
-                out var outBytesReturned,
-                IntPtr.Zero))
-            {
-                var pUsnRecord = new IntPtr(pData.ToInt64() + sizeof(long));
-
-                // While there is at least one entry in the USN journal.
-                while (outBytesReturned > 60)
+                switch (filterOption)
                 {
-                    var usnEntry = new UsnEntry(pUsnRecord);
-
-                    switch (filterOption)
-                    {
-                        case FilterOption.OnlyFiles when usnEntry.IsFolder:
-                        case FilterOption.OnlyDirectories when !usnEntry.IsFolder:
-                            {
-                                pUsnRecord = new IntPtr(pUsnRecord.ToInt64() + usnEntry.RecordLength);
-                                outBytesReturned -= usnEntry.RecordLength;
-                                continue;
-                            }
-                    }
-
-                    if (string.IsNullOrWhiteSpace(keyword))
-                    {
-                        yield return usnEntry;
-                    }
-                    else
-                    {
-                        var options = new GlobOptions { Evaluation = { CaseInsensitive = true } };
-                        var glob = Glob.Parse(keyword, options);
-                        if (glob.IsMatch(usnEntry.Name.AsSpan()))
-                        {
-                            yield return usnEntry;
-                        }
-                    }
-
-                    pUsnRecord = new IntPtr(pUsnRecord.ToInt64() + usnEntry.RecordLength);
-                    outBytesReturned -= usnEntry.RecordLength;
+                    case FilterOption.OnlyFiles when entry.IsFolder:
+                    case FilterOption.OnlyDirectories when !entry.IsFolder:
+                        continue;
                 }
 
-                Marshal.WriteInt64(mftDataBuffer, Marshal.ReadInt64(pData, 0));
+                if (string.IsNullOrWhiteSpace(keyword))
+                {
+                    yield return entry;
+                }
+                else
+                {
+                    var options = new GlobOptions { Evaluation = { CaseInsensitive = true } };
+                    var glob = Glob.Parse(keyword, options);
+                    if (glob.IsMatch(entry.Name.AsSpan()))
+                    {
+                        yield return entry;
+                    }
+                }
             }
-
-            Marshal.FreeHGlobal(pData);
         }
 
         public unsafe bool TryGetPathFromFileId(ulong frn, out string path)
@@ -284,7 +237,6 @@ namespace UsnParser
 
             var bReadMore = true;
 
-            // Sequentially process the USN journal looking for image file entries.
             const int pbDataSize = sizeof(ulong) * 16384;
             var pbData = Marshal.AllocHGlobal(pbDataSize);
             ZeroMemory(pbData, pbDataSize);
@@ -304,6 +256,7 @@ namespace UsnParser
             ZeroMemory(readDataBuffer, readDataSize);
             *(READ_USN_JOURNAL_DATA_V0*)readDataBuffer = readData;
 
+            /*
             try
             {
                 // Read USN journal entries.
@@ -383,6 +336,7 @@ namespace UsnParser
                 Marshal.FreeHGlobal(readDataBuffer);
                 Marshal.FreeHGlobal(pbData);
             }
+            */
 
             return usnEntries;
         }
@@ -390,7 +344,7 @@ namespace UsnParser
         public IEnumerable<UsnEntry> ReadUsnEntries(USN_JOURNAL_DATA_V0 previousUsnState, uint reasonMask, string keyword, FilterOption filterOption)
         {
             if (!_isUsnSupported)
-                throw new Exception($"{_driveInfo.Name} is not an NTFS volume.");
+                throw new Exception($"{_driveInfo.Name} is not an NTFS/ReFS volume, and does not support change journal.");
 
             if (_usnJournalRootHandle.IsInvalid)
                 throw new Win32Exception((int)Win32Error.ERROR_INVALID_HANDLE);
@@ -400,10 +354,9 @@ namespace UsnParser
 
             var bReadMore = true;
 
-            // Sequentially process the USN journal looking for image file entries.
-            const int pbDataSize = sizeof(ulong) * 16384;
-            var pbData = Marshal.AllocHGlobal(pbDataSize);
-            ZeroMemory(pbData, pbDataSize);
+            const int BufferSize = 256 * 1024;
+            var buffer = Marshal.AllocHGlobal(BufferSize);
+            ZeroMemory(buffer, BufferSize);
 
             var readData = new READ_USN_JOURNAL_DATA_V0
             {
@@ -420,6 +373,9 @@ namespace UsnParser
             ZeroMemory(readDataBuffer, readDataSize);
             Marshal.StructureToPtr(readData, readDataBuffer, true);
 
+            return Array.Empty<UsnEntry>();
+
+            /*
             try
             {
                 // Read USN journal entries.
@@ -429,13 +385,15 @@ namespace UsnParser
                                                    FSCTL_READ_USN_JOURNAL,
                                                    readDataBuffer,
                                                    readDataSize,
-                                                   pbData,
-                                                   pbDataSize,
+                                                   buffer,
+                                                   BufferSize,
                                                    out var outBytesReturned,
                                                    IntPtr.Zero);
                     if (bSuccess)
                     {
-                        var pUsnRecord = new IntPtr(pbData.ToInt64() + sizeof(ulong));
+                        var pUsnRecord = new IntPtr(buffer.ToInt64() + sizeof(ulong));
+
+                        var usnRecord = Marshal.PtrToStructure<USN_RECORD_V2>(buffer);
 
                         // While there is at least one entry in the USN journal.
                         while (outBytesReturned > 60)
@@ -487,7 +445,7 @@ namespace UsnParser
                         break;
                     }
 
-                    var nextUsn = Marshal.ReadInt64(pbData, 0);
+                    var nextUsn = Marshal.ReadInt64(buffer, 0);
                     if (nextUsn >= newUsnState.NextUsn)
                         break;
 
@@ -497,8 +455,9 @@ namespace UsnParser
             finally
             {
                 Marshal.FreeHGlobal(readDataBuffer);
-                Marshal.FreeHGlobal(pbData);
+                Marshal.FreeHGlobal(buffer);
             }
+            */
         }
 
         public bool IsUsnJournalActive()

@@ -1,5 +1,5 @@
-﻿using System.Runtime.InteropServices;
-using System.Runtime.InteropServices.ComTypes;
+﻿using System;
+using System.Runtime.InteropServices;
 
 namespace UsnParser.Native
 {
@@ -38,7 +38,7 @@ namespace UsnParser.Native
     // MajorVersion; WORD MinorVersion; DWORDLONG FileReferenceNumber; DWORDLONG ParentFileReferenceNumber; USN Usn; LARGE_INTEGER
     // TimeStamp; DWORD Reason; DWORD SourceInfo; DWORD SecurityId; DWORD FileAttributes; WORD FileNameLength; WORD FileNameOffset; WCHAR
     // FileName[1]; } USN_RECORD_V2, *PUSN_RECORD_V2;
-    [StructLayout(LayoutKind.Sequential, Size = 64, CharSet = CharSet.Unicode)]
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
     public struct USN_RECORD_V2
     {
         /// <summary>
@@ -109,7 +109,7 @@ namespace UsnParser.Native
         public long Usn;
 
         /// <summary>The standard UTC time stamp (FILETIME) of this record, in 64-bit format.</summary>
-        public FILETIME TimeStamp;
+        public LongFileTime TimeStamp;
 
         /// <summary>
         /// <para>
@@ -323,8 +323,9 @@ namespace UsnParser.Native
         /// Do not perform any compile-time pointer arithmetic using <c>FileName</c>. Instead, make necessary calculations at run time by
         /// using the value of the <c>FileNameOffset</c> member. Doing so helps make your code compatible with any future versions of <c>USN_RECORD_V2</c>.
         /// </para>
-        /// </summary>
-        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 1)]
-        public string FileName;
+        /// </summary>       
+        private char _fileName;
+
+        public unsafe ReadOnlySpan<char> FileName => MemoryMarshal.CreateReadOnlySpan(ref _fileName, FileNameLength / sizeof(char));
     }
 }
