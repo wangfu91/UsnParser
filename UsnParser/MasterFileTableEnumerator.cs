@@ -18,7 +18,7 @@ namespace UsnParser
         private readonly int _bufferLength;
         private readonly SafeFileHandle _volumeRootHandle;
         private bool _lastRecordFound;
-        private ulong _startFileReferenceNumber;
+        private ulong _nextStartFileId;
         private uint _offset;
         private uint _bytesRead;
         private readonly long _highUsn;
@@ -40,9 +40,12 @@ namespace UsnParser
 
         private unsafe bool GetData()
         {
+            // To enumerate files on a volume, use the FSCTL_ENUM_USN_DATA operation one or more times.
+            // On the first call, set the starting point, the StartFileReferenceNumber member of the MFT_ENUM_DATA structure, to (DWORDLONG)0.
+            // Each call to FSCTL_ENUM_USN_DATA retrieves the starting point for the subsequent call as the first entry in the output buffer.
             var mftEnumData = new MFT_ENUM_DATA_V0
             {
-                StartFileReferenceNumber = _startFileReferenceNumber,
+                StartFileReferenceNumber = _nextStartFileId,
                 LowUsn = 0,
                 HighUsn = _highUsn
             };
@@ -67,9 +70,17 @@ namespace UsnParser
 
         private unsafe void FindNextRecord()
         {
-            if (_record != null && _offset < _bytesRead)
+            if (_record != null)
             {
-                _record = (USN_RECORD_V2*)((byte*)_record + _record->RecordLength);
+                if (_offset < _bytesRead)
+                {
+                    _record = (USN_RECORD_V2*)((byte*)_record + _record->RecordLength);
+                    _offset += _record->RecordLength;
+                }
+                else
+                {
+                    _record = default;
+                }
             }
 
             if (_record != null) return;
@@ -77,6 +88,8 @@ namespace UsnParser
             // We need read more data
             if (GetData())
             {
+                // Each call to FSCTL_ENUM_USN_DATA retrieves the starting point for the subsequent call as the first entry in the output buffer.
+                _nextStartFileId = *(ulong*)_buffer;
                 _offset = sizeof(long);
                 _record = (USN_RECORD_V2*)(_buffer + _offset);
                 _offset += _record->RecordLength;
@@ -89,7 +102,6 @@ namespace UsnParser
             if (_record == null) return false;
 
             _current = new UsnEntry(_record);
-            _startFileReferenceNumber = _current.FileReferenceNumber;
             return true;
         }
 
