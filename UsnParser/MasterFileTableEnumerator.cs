@@ -2,10 +2,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
 using System.Runtime.InteropServices;
-using System.Text;
-using System.Threading.Tasks;
 using UsnParser.Native;
 using static UsnParser.Native.Kernel32;
 
@@ -17,10 +14,9 @@ namespace UsnParser
         private IntPtr _buffer;
         private readonly int _bufferLength;
         private readonly SafeFileHandle _volumeRootHandle;
-        private bool _lastRecordFound;
-        private ulong _nextStartFileId;
         private uint _offset;
         private uint _bytesRead;
+        private ulong _nextStartFileId;
         private readonly long _highUsn;
         private USN_RECORD_V2* _record;
         private UsnEntry _current;
@@ -42,7 +38,6 @@ namespace UsnParser
         {
             // To enumerate files on a volume, use the FSCTL_ENUM_USN_DATA operation one or more times.
             // On the first call, set the starting point, the StartFileReferenceNumber member of the MFT_ENUM_DATA structure, to (DWORDLONG)0.
-            // Each call to FSCTL_ENUM_USN_DATA retrieves the starting point for the subsequent call as the first entry in the output buffer.
             var mftEnumData = new MFT_ENUM_DATA_V0
             {
                 StartFileReferenceNumber = _nextStartFileId,
@@ -70,20 +65,12 @@ namespace UsnParser
 
         private unsafe void FindNextRecord()
         {
-            if (_record != null)
+            if (_record != null && _offset < _bytesRead)
             {
-                if (_offset < _bytesRead)
-                {
-                    _record = (USN_RECORD_V2*)((byte*)_record + _record->RecordLength);
-                    _offset += _record->RecordLength;
-                }
-                else
-                {
-                    _record = default;
-                }
+                _record = (USN_RECORD_V2*)((byte*)_record + _record->RecordLength);
+                _offset += _record->RecordLength;
+                return;
             }
-
-            if (_record != null) return;
 
             // We need read more data
             if (GetData())
@@ -93,6 +80,11 @@ namespace UsnParser
                 _offset = sizeof(long);
                 _record = (USN_RECORD_V2*)(_buffer + _offset);
                 _offset += _record->RecordLength;
+            }
+            else
+            {
+                // EOF, no more records
+                _record = default;
             }
         }
 
@@ -116,12 +108,11 @@ namespace UsnParser
             {
                 if (disposing)
                 {
-                    // TODO: dispose managed state (managed objects)
-                    _lastRecordFound = true;
+                    // Dispose managed state (managed objects)
                 }
 
-                // TODO: free unmanaged resources (unmanaged objects) and override finalizer
-                // TODO: set large fields to null
+                // Free unmanaged resources (unmanaged objects) and override finalizer
+                // Set large fields to null
                 if (_buffer != default)
                 {
                     Marshal.FreeHGlobal(_buffer);
