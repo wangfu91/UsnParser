@@ -21,16 +21,18 @@ namespace UsnParser
         private readonly long _highUsn;
         private USN_RECORD_V2* _record;
         private UsnEntry _current;
+        private readonly MasterFileTableEnumerationOptions _options;
 
         public UsnEntry Current => _current;
 
         object IEnumerator.Current => Current;
 
-        public MasterFileTableEnumerator(SafeFileHandle volumeRootHandle, USN_JOURNAL_DATA_V0 changeJournalData)
+        public MasterFileTableEnumerator(SafeFileHandle volumeRootHandle, USN_JOURNAL_DATA_V0 changeJournalData, MasterFileTableEnumerationOptions? options)
         {
             _volumeRootHandle = volumeRootHandle;
             _highUsn = changeJournalData.NextUsn;
-            _bufferLength = 256 * 1024;
+            _options = options ?? MasterFileTableEnumerationOptions.Default;
+            _bufferLength = _options.BufferSize;
             _buffer = Marshal.AllocHGlobal(_bufferLength);
         }
 
@@ -93,14 +95,16 @@ namespace UsnParser
                 // Each call to FSCTL_ENUM_USN_DATA retrieves the starting point for the subsequent call as the first entry in the output buffer.
                 _nextStartFileId = *(ulong*)_buffer;
                 _offset = sizeof(ulong);
-                _record = (USN_RECORD_V2*)(_buffer + _offset);
-                _offset += _record->RecordLength;
+                if (_offset < _bytesRead)
+                {
+                    _record = (USN_RECORD_V2*)(_buffer + _offset);
+                    _offset += _record->RecordLength;
+                    return;
+                }
             }
-            else
-            {
-                // EOF, no more records
-                _record = default;
-            }
+
+            // EOF, no more records
+            _record = default;
         }
 
         public bool MoveNext()

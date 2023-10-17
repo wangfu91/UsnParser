@@ -142,7 +142,7 @@ namespace UsnParser
             {
                 if (token.IsCancellationRequested) return;
 
-                var usnEntries = journal.GetUsnJournalEntries(usnState, Kernel32.USN_REASON_MASK, keyword, filterOption, out usnState);
+                var usnEntries = journal.GetUsnJournalEntries(usnState.NextUsn, keyword, filterOption);
 
                 foreach (var entry in usnEntries)
                 {
@@ -198,13 +198,7 @@ namespace UsnParser
 
         private static void ReadHistoryUsnJournals(IConsole console, UsnJournal journal, ulong usnJournalId, string keyword, FilterOption filterOption, CancellationToken token)
         {
-            var usnReadState = new USN_JOURNAL_DATA_V0
-            {
-                NextUsn = 0,
-                UsnJournalID = usnJournalId
-            };
-
-            var usnEntries = journal.ReadUsnEntries(usnReadState, Kernel32.USN_REASON_MASK, keyword, filterOption);
+            var usnEntries = journal.ReadUsnEntries(keyword, filterOption);
 
             foreach (var entry in usnEntries)
             {

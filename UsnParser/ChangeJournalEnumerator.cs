@@ -21,17 +21,20 @@ namespace UsnParser
         private long _nextStartUsn;
         private USN_RECORD_V2* _record;
         private UsnEntry _current;
+        private readonly ChangeJournalEnumerationOptions _options;
 
         public UsnEntry Current => _current;
 
-        object IEnumerator.Current => Current;
+        object? IEnumerator.Current => Current;
 
-        public ChangeJournalEnumerator(SafeFileHandle volumeRootHandle, USN_JOURNAL_DATA_V0 changeJournal)
+        public ChangeJournalEnumerator(SafeFileHandle volumeRootHandle, USN_JOURNAL_DATA_V0 changeJournal, ChangeJournalEnumerationOptions? options = null)
         {
             _volumeRootHandle = volumeRootHandle;
-            _bufferLength = 256 * 1024;
-            _buffer = Marshal.AllocHGlobal(_bufferLength);
             _usnJournalId = changeJournal.UsnJournalID;
+            _options = options ?? ChangeJournalEnumerationOptions.Default;
+            _nextStartUsn = _options.StartUsn;
+            _bufferLength = _options.BufferSize;
+            _buffer = Marshal.AllocHGlobal(_bufferLength);
         }
 
         private unsafe bool GetData()
@@ -40,9 +43,9 @@ namespace UsnParser
             {
                 StartUsn = _nextStartUsn,
                 ReasonMask = USN_REASON_MASK,
-                ReturnOnlyOnClose = 0,
-                Timeout = 0,
-                BytesToWaitFor = 0,
+                ReturnOnlyOnClose = _options.ReturnOnlyOnClose ? 1u : 0u,
+                Timeout = _options.Timeout,
+                BytesToWaitFor = _options.BytesToWaitFor,
                 UsnJournalID = _usnJournalId
             };
             var readDataSize = Marshal.SizeOf(readData);
@@ -92,14 +95,16 @@ namespace UsnParser
                 // Use this value to continue reading records from the end boundary forward.
                 _nextStartUsn = *(long*)_buffer;
                 _offset = sizeof(long);
-                _record = (USN_RECORD_V2*)(_buffer + _offset);
-                _offset += _record->RecordLength;
+                if (_offset < _bytesRead)
+                {
+                    _record = (USN_RECORD_V2*)(_buffer + _offset);
+                    _offset += _record->RecordLength;
+                    return;
+                }
             }
-            else
-            {
-                // EOF, no more records
-                _record = default;
-            }
+
+            // EOF, no more records
+            _record = default;
         }
 
         public bool MoveNext()
