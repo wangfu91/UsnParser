@@ -9,18 +9,8 @@ using static UsnParser.Native.Kernel32;
 
 namespace UsnParser
 {
-    internal unsafe class ChangeJournalEnumerator : IEnumerator<UsnEntry>
+    internal unsafe class ChangeJournalEnumerator : BaseEnumerator, IEnumerator<UsnEntry>
     {
-        private bool _disposed;
-        private IntPtr _buffer;
-        private readonly int _bufferLength;
-        private readonly SafeFileHandle _volumeRootHandle;
-        private readonly ulong _usnJournalId;
-        private uint _offset;
-        private uint _bytesRead;
-        private long _nextStartUsn;
-        private USN_RECORD_V2* _record;
-        private UsnEntry _current;
         private readonly ChangeJournalEnumerationOptions _options;
 
         public UsnEntry Current => _current;
@@ -28,6 +18,7 @@ namespace UsnParser
         object? IEnumerator.Current => Current;
 
         public ChangeJournalEnumerator(SafeFileHandle volumeRootHandle, USN_JOURNAL_DATA_V0 changeJournal, ChangeJournalEnumerationOptions? options = null)
+            :base(volumeRootHandle, changeJournal, options)
         {
             _volumeRootHandle = volumeRootHandle;
             _usnJournalId = changeJournal.UsnJournalID;
