@@ -5,16 +5,16 @@ using UsnParser.Native;
 
 namespace UsnParser
 {
-    public static class ConsoleUtils
+    public static class ConsoleExtension
     {
-        public static void Write(this IConsole console, ConsoleColor color, string message)
+        private static void Write(this IConsole console, ConsoleColor color, string message)
         {
             console.ForegroundColor = color;
             console.Write(message);
             console.ResetColor();
         }
 
-        public static void WriteLine(this IConsole console, ConsoleColor color, string message)
+        private static void WriteLine(this IConsole console, ConsoleColor color, string message)
         {
             console.ForegroundColor = color;
             console.WriteLine(message);
@@ -26,7 +26,7 @@ namespace UsnParser
             console.WriteLine(ConsoleColor.Red, message);
         }
 
-        public static void PrintUsnJournalState(IConsole console, USN_JOURNAL_DATA_V0 usnData)
+        public static void PrintUsnJournalState(this IConsole console, USN_JOURNAL_DATA_V0 usnData)
         {
             console.WriteLine($"{"Journal ID",-20}: 0x{usnData.UsnJournalID:x16}");
             console.WriteLine($"{"First USN",-20}: {usnData.FirstUsn}");
@@ -37,7 +37,7 @@ namespace UsnParser
             console.WriteLine($"{"Allocation Delta",-20}: {usnData.AllocationDelta}");
         }
 
-        public static void PrintEntryPath(IConsole console, UsnJournal usnJournal, UsnEntry usnEntry)
+        public static void PrintEntryPath(this IConsole console, UsnJournal usnJournal, UsnEntry usnEntry)
         {
             console.WriteLine();
             console.WriteLine($"{"Name",-20}: {usnEntry.Name}");
@@ -49,7 +49,7 @@ namespace UsnParser
             }
         }
 
-        public static void PrintUsnEntry(IConsole console, UsnJournal usnJournal, UsnEntry usnEntry)
+        public static void PrintUsnEntry(this IConsole console, UsnJournal usnJournal, UsnEntry usnEntry)
         {
             console.WriteLine();
             console.WriteLine($"{"USN",-20}: {usnEntry.USN}");

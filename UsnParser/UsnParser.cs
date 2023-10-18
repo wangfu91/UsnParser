@@ -48,7 +48,9 @@ namespace UsnParser
         [Option("-do|--DirOnly", Description = "Only show the directory entries")]
         public bool DirectoryOnly { get; set; }
 
-        public CancellationToken Token { get; private set; }
+        protected CancellationToken _cancellationToken;
+
+        protected readonly IConsole _console = PhysicalConsole.Singleton;
 
         public FilterOption FilterOption
         {
@@ -60,53 +62,48 @@ namespace UsnParser
             }
         }
 
-        public UsnJournal Journal { get; private set; }
-
+        protected UsnJournal _usnJournal;
         protected USN_JOURNAL_DATA_V0 _usnJournalData;
 
         protected abstract int OnExecute(CommandLineApplication app);
 
         protected int ExecuteCommand(Func<int> op)
         {
-            var console = PhysicalConsole.Singleton;
-
             try
             {
                 var cts = new CancellationTokenSource();
-                Token = cts.Token;
+                _cancellationToken = cts.Token;
 
-                console.CancelKeyPress += (o, e) =>
+                _console.CancelKeyPress += (o, e) =>
                 {
-                    console.WriteLine("Keyboard interrupt, exiting...");
+                    _console.WriteLine("Keyboard interrupt, exiting...");
                     cts.Cancel();
                 };
 
                 if (!OperatingSystem.IsWindows())
                 {
-                    console.PrintError($"This tool only support Windows, since it used NTFS specific features.");
+                    _console.PrintError($"This tool only support Windows, since it used NTFS specific features.");
                     return -1;
                 }
 
                 var driveInfo = new DriveInfo(Volume);
-                using (Journal = new UsnJournal(driveInfo))
+                using (_usnJournal = new UsnJournal(driveInfo))
                 {
-                    _usnJournalData = Journal.GetUsnJournalState();
+                    _usnJournalData = _usnJournal.GetUsnJournalState();
 #if DEBUG
-                    ConsoleUtils.PrintUsnJournalState(console, _usnJournalData);
+                    _console.PrintUsnJournalState(_usnJournalData);
 #endif
 
-                    op();
-
-                    return 0;
+                    return op();
                 }
             }
             catch (Exception ex)
             {
-                console.PrintError(ex.Message);
+                _console.PrintError(ex.Message);
 
                 if (ex is Win32Exception win32Ex && win32Ex.NativeErrorCode == (int)Win32Error.ERROR_ACCESS_DENIED && !HasAdministratorPrivilege())
                 {
-                    console.PrintError($"You need system administrator privileges to access the USN journal of {Volume.ToUpper()}.");
+                    _console.PrintError($"You need system administrator privileges to access the USN journal of {Volume.ToUpper()}.");
                 }
 
                 return -1;
@@ -131,12 +128,12 @@ namespace UsnParser
         {
             return ExecuteCommand(() =>
             {
-                var usnEntries = Journal.GetUsnJournalEntries(_usnJournalData.UsnJournalID, _usnJournalData.NextUsn, Keyword, FilterOption);
+                var usnEntries = _usnJournal.GetUsnJournalEntries(_usnJournalData.UsnJournalID, _usnJournalData.NextUsn, Keyword, FilterOption);
 
                 foreach (var entry in usnEntries)
                 {
-                    if (Token.IsCancellationRequested) return -1;
-                    ConsoleUtils.PrintUsnEntry(PhysicalConsole.Singleton, Journal, entry);
+                    if (_cancellationToken.IsCancellationRequested) return -1;
+                    _console.PrintUsnEntry(_usnJournal, entry);
                 }
                 return 0;
             });
@@ -154,13 +151,13 @@ namespace UsnParser
             return ExecuteCommand(() =>
             {
                 // Search through NTFS Master File Table
-                var usnEntries = Journal.EnumerateUsnEntries(Keyword, FilterOption, _usnJournalData.NextUsn);
+                var usnEntries = _usnJournal.EnumerateUsnEntries(Keyword, FilterOption, _usnJournalData.NextUsn);
 
                 foreach (var entry in usnEntries)
                 {
-                    if (Token.IsCancellationRequested) break;
+                    if (_cancellationToken.IsCancellationRequested) return -1;
 
-                    ConsoleUtils.PrintEntryPath(PhysicalConsole.Singleton, Journal, entry);
+                    _console.PrintEntryPath(_usnJournal, entry);
                 }
                 return 0;
             });
@@ -177,13 +174,13 @@ namespace UsnParser
         {
             return ExecuteCommand(() =>
             {
-                var usnEntries = Journal.ReadUsnEntries(_usnJournalData.UsnJournalID, Keyword, FilterOption);
+                var usnEntries = _usnJournal.ReadUsnEntries(_usnJournalData.UsnJournalID, Keyword, FilterOption);
 
                 foreach (var entry in usnEntries)
                 {
-                    if (Token.IsCancellationRequested) break;
+                    if (_cancellationToken.IsCancellationRequested) return -1;
 
-                    ConsoleUtils.PrintUsnEntry(PhysicalConsole.Singleton, Journal, entry);
+                    _console.PrintUsnEntry(_usnJournal, entry);
                 }
                 return 0;
             });
