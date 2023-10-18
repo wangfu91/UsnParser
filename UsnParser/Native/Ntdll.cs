@@ -7,6 +7,12 @@ namespace UsnParser.Native
 {
     public static partial class Ntdll
     {
+        /// <summary>The operation completed successfully.</summary>
+		public const int STATUS_SUCCESS = 0x00000000;
+
+        /// <summary>{Access Denied} A process has requested access to an object but has not been granted those access rights.</summary>
+        public const int STATUS_ACCESS_DENIED = unchecked((int)0xC0000022);
+
         /// <summary>The specified information record length does not match the length that is required for the specified information class.</summary>
         internal const int STATUS_INFO_LENGTH_MISMATCH = unchecked((int)0xC0000004);
 

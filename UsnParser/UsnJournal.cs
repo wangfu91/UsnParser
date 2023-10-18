@@ -13,8 +13,6 @@ using FileAccess = UsnParser.Native.FileAccess;
 using UsnParser.Enumeration;
 using static UsnParser.Enumeration.BaseEnumerable;
 using UsnParser.Cache;
-using Microsoft.VisualBasic;
-using System.Drawing;
 
 namespace UsnParser
 {
@@ -247,22 +245,21 @@ namespace UsnParser
 
             using (fileHandle)
             {
-                if (status == 0)
+                if (status == STATUS_SUCCESS)
                 {
-                    var pathBufferSize = 4;//MAX_PATH;
+                    var pathBufferSize = MAX_PATH;
                     while (true)
                     {
                         var pathBuffer = Marshal.AllocHGlobal(pathBufferSize);
                         try
                         {
-
                             status = NtQueryInformationFile(
                                 fileHandle,
                                 ioStatusBlock,
                                 pathBuffer,
                                 (uint)pathBufferSize,
                                 FILE_INFORMATION_CLASS.FileNameInformation);
-                            if (status == 0)
+                            if (status == STATUS_SUCCESS)
                             {
                                 var nameInfo = (FILE_NAME_INFORMATION*)pathBuffer;
                                 path = nameInfo->FileName.ToString();
@@ -286,7 +283,6 @@ namespace UsnParser
                     }
                 }
             }
-
 
             return false;
         }
