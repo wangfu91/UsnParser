@@ -78,15 +78,13 @@ namespace UsnParser
             }
         }
 
-        public IEnumerable<UsnEntry> EnumerateUsnEntries(string keyword, FilterOption filterOption)
+        public IEnumerable<UsnEntry> EnumerateUsnEntries(string? keyword, FilterOption filterOption, long highUsn)
         {
-            var usnState = QueryUsnJournal();
-
             // Note: 
             // In ReFS there is no MFT and subsequently no MFT entries.
             // http://www.resilientfilesystem.co.uk/refs-master-file-table
 
-            var mftEnumerator = new MasterFileTableEnumerable(_usnJournalRootHandle, usnState);
+            var mftEnumerator = new MasterFileTableEnumerable(_usnJournalRootHandle, highUsn);
 
             foreach (var entry in mftEnumerator)
             {
@@ -124,7 +122,7 @@ namespace UsnParser
             path = null;
             if (frn == 0) return false;
 
-            long allocSize = 0;
+            long allocationSize = 0;
             var objAttributes = new OBJECT_ATTRIBUTES();
             var ioStatusBlock = new IO_STATUS_BLOCK();
 
@@ -153,7 +151,7 @@ namespace UsnParser
                     FileAccess.GENERIC_READ | FileAccess.GENERIC_WRITE,
                     objAttributes,
                     out ioStatusBlock,
-                    allocSize,
+                    allocationSize,
                     0,
                     FileShare.ReadWrite,
                     NtFileMode.FILE_OPEN,
@@ -224,15 +222,14 @@ namespace UsnParser
             }
         }
 
-        public IEnumerable<UsnEntry> GetUsnJournalEntries(long startUsn, string keyword, FilterOption filterOption)
+        public IEnumerable<UsnEntry> GetUsnJournalEntries(ulong usnJournalId, long startUsn, string? keyword, FilterOption filterOption)
         {
             if (!_isUsnSupported)
-                throw new Exception($"{_driveInfo.Name} is not an NTFS volume.");
+                throw new Exception($"{_driveInfo.Name} is not an NTFS/ReFS volume.");
 
             if (_usnJournalRootHandle.IsInvalid)
                 throw new Win32Exception((int)Win32Error.ERROR_INVALID_HANDLE);
 
-            var changeJournal = QueryUsnJournal();
             var options = new ChangeJournalEnumerationOptions
             {
                 BytesToWaitFor = 1,
@@ -240,7 +237,7 @@ namespace UsnParser
                 ReturnOnlyOnClose = false,
                 StartUsn = startUsn,
             };
-            var changeJournalEnumerator = new ChangeJournalEnumerable(_usnJournalRootHandle, changeJournal, options);
+            var changeJournalEnumerator = new ChangeJournalEnumerable(_usnJournalRootHandle, usnJournalId, options);
 
             foreach (var usnEntry in changeJournalEnumerator)
             {
@@ -267,7 +264,7 @@ namespace UsnParser
             }
         }
 
-        public IEnumerable<UsnEntry> ReadUsnEntries(string keyword, FilterOption filterOption)
+        public IEnumerable<UsnEntry> ReadUsnEntries(ulong usnJournalId, string? keyword, FilterOption filterOption)
         {
             if (!_isUsnSupported)
                 throw new Exception($"{_driveInfo.Name} is not an NTFS/ReFS volume, and does not support change journal.");
@@ -275,10 +272,7 @@ namespace UsnParser
             if (_usnJournalRootHandle.IsInvalid)
                 throw new Win32Exception((int)Win32Error.ERROR_INVALID_HANDLE);
 
-            // Get current USN journal state.
-            var changeJournal = QueryUsnJournal();
-
-            var changeJournalEnumerator = new ChangeJournalEnumerable(_usnJournalRootHandle, changeJournal);
+            var changeJournalEnumerator = new ChangeJournalEnumerable(_usnJournalRootHandle, usnJournalId);
 
             foreach (var usnEntry in changeJournalEnumerator)
             {

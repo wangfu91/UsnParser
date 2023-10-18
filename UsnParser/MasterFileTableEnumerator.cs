@@ -13,10 +13,10 @@ namespace UsnParser
         private readonly long _highUsn;
         private readonly MasterFileTableEnumerationOptions _options;
 
-        public MasterFileTableEnumerator(SafeFileHandle volumeRootHandle, USN_JOURNAL_DATA_V0 changeJournalData, MasterFileTableEnumerationOptions options)
-            : base(volumeRootHandle, changeJournalData, options.BufferSize)
+        public MasterFileTableEnumerator(SafeFileHandle volumeRootHandle, long highUsn, MasterFileTableEnumerationOptions options)
+            : base(volumeRootHandle, options.BufferSize)
         {
-            _highUsn = changeJournalData.NextUsn;
+            _highUsn = highUsn;
             _options = options;
         }
 

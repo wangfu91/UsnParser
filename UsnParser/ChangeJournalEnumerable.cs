@@ -2,7 +2,6 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Threading;
-using UsnParser.Native;
 
 namespace UsnParser
 {
@@ -10,19 +9,19 @@ namespace UsnParser
     {
         private ChangeJournalEnumerator? _enumerator;
         private readonly SafeFileHandle _volumeRootHandle;
-        private readonly USN_JOURNAL_DATA_V0 _changeJournal;
+        private readonly ulong _changeJournalId;
         private readonly ChangeJournalEnumerationOptions _options;
 
-        public ChangeJournalEnumerable(SafeFileHandle volumeRootHandle, USN_JOURNAL_DATA_V0 changeJournal, ChangeJournalEnumerationOptions? options = null)
+        public ChangeJournalEnumerable(SafeFileHandle volumeRootHandle, ulong usnJournalId, ChangeJournalEnumerationOptions? options = null)
         {
             _volumeRootHandle = volumeRootHandle;
-            _changeJournal = changeJournal;
+            _changeJournalId = usnJournalId;
             _options = options ?? ChangeJournalEnumerationOptions.Default;
         }
 
         public IEnumerator<UsnEntry> GetEnumerator()
         {
-            return Interlocked.Exchange(ref _enumerator, null) ?? new ChangeJournalEnumerator(_volumeRootHandle, _changeJournal, _options);
+            return Interlocked.Exchange(ref _enumerator, null) ?? new ChangeJournalEnumerator(_volumeRootHandle, _changeJournalId, _options);
         }
 
         IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();

@@ -62,7 +62,7 @@ namespace UsnParser
 
         public UsnJournal Journal { get; private set; }
 
-        public USN_JOURNAL_DATA_V0 UsnState { get; private set; }
+        protected USN_JOURNAL_DATA_V0 _usnJournalData;
 
         protected abstract int OnExecute(CommandLineApplication app);
 
@@ -90,9 +90,9 @@ namespace UsnParser
                 var driveInfo = new DriveInfo(Volume);
                 using (Journal = new UsnJournal(driveInfo))
                 {
-                    UsnState = Journal.GetUsnJournalState();
+                    _usnJournalData = Journal.GetUsnJournalState();
 #if DEBUG
-                    ConsoleUtils.PrintUsnJournalState(console, UsnState);
+                    ConsoleUtils.PrintUsnJournalState(console, _usnJournalData);
 #endif
 
                     op();
@@ -125,59 +125,45 @@ namespace UsnParser
     internal class MonitorCommand : SubCommandBase
     {
         [Option("-f|--filter", Description = "Filter the result with keyword, wildcards are permitted")]
-        public string Keyword { get; set; }
+        public string? Keyword { get; set; }
 
         protected override int OnExecute(CommandLineApplication app)
         {
             return ExecuteCommand(() =>
             {
-                MonitorRealTimeUsnJournal(PhysicalConsole.Singleton, Journal, UsnState, Keyword, FilterOption, Token);
-                return 0;
-            });
-        }
-
-        private static void MonitorRealTimeUsnJournal(IConsole console, UsnJournal journal, USN_JOURNAL_DATA_V0 usnState, string keyword, FilterOption filterOption, CancellationToken token)
-        {
-            while (true)
-            {
-                if (token.IsCancellationRequested) return;
-
-                var usnEntries = journal.GetUsnJournalEntries(usnState.NextUsn, keyword, filterOption);
+                var usnEntries = Journal.GetUsnJournalEntries(_usnJournalData.UsnJournalID, _usnJournalData.NextUsn, Keyword, FilterOption);
 
                 foreach (var entry in usnEntries)
                 {
-                    ConsoleUtils.PrintUsnEntry(console, journal, entry);
+                    if (Token.IsCancellationRequested) return -1;
+                    ConsoleUtils.PrintUsnEntry(PhysicalConsole.Singleton, Journal, entry);
                 }
-            }
+                return 0;
+            });
         }
     }
 
     [Command("search", Description = "Search the Master File Table")]
     internal class SearchCommand : SubCommandBase
     {
-        [Argument(1, Description = "Search keyword, wildcards are permitted <Required>")]
-        [Required]
-        public string Keyword { get; set; }
+        [Argument(1, Description = "Search keyword, wildcards are permitted")]
+        public string? Keyword { get; set; }
 
         protected override int OnExecute(CommandLineApplication app)
         {
             return ExecuteCommand(() =>
             {
-                SearchMasterFileTable(PhysicalConsole.Singleton, Journal, Keyword, FilterOption, Token);
+                // Search through NTFS Master File Table
+                var usnEntries = Journal.EnumerateUsnEntries(Keyword, FilterOption, _usnJournalData.NextUsn);
+
+                foreach (var entry in usnEntries)
+                {
+                    if (Token.IsCancellationRequested) break;
+
+                    ConsoleUtils.PrintEntryPath(PhysicalConsole.Singleton, Journal, entry);
+                }
                 return 0;
             });
-        }
-
-        private static void SearchMasterFileTable(IConsole console, UsnJournal journal, string keyword, FilterOption filterOption, CancellationToken token)
-        {
-            var usnEntries = journal.EnumerateUsnEntries(keyword, filterOption);
-
-            foreach (var entry in usnEntries)
-            {
-                if (token.IsCancellationRequested) break;
-
-                ConsoleUtils.PrintEntryPath(console, journal, entry);
-            }
         }
     }
 
@@ -185,27 +171,22 @@ namespace UsnParser
     internal class ReadCommand : SubCommandBase
     {
         [Option("-f|--filter", Description = "Filter the result with keyword, wildcards are permitted")]
-        public string Keyword { get; set; }
+        public string? Keyword { get; set; }
 
         protected override int OnExecute(CommandLineApplication app)
         {
             return ExecuteCommand(() =>
             {
-                ReadHistoryUsnJournals(PhysicalConsole.Singleton, Journal, UsnState.UsnJournalID, Keyword, FilterOption, Token);
+                var usnEntries = Journal.ReadUsnEntries(_usnJournalData.UsnJournalID, Keyword, FilterOption);
+
+                foreach (var entry in usnEntries)
+                {
+                    if (Token.IsCancellationRequested) break;
+
+                    ConsoleUtils.PrintUsnEntry(PhysicalConsole.Singleton, Journal, entry);
+                }
                 return 0;
             });
-        }
-
-        private static void ReadHistoryUsnJournals(IConsole console, UsnJournal journal, ulong usnJournalId, string keyword, FilterOption filterOption, CancellationToken token)
-        {
-            var usnEntries = journal.ReadUsnEntries(keyword, filterOption);
-
-            foreach (var entry in usnEntries)
-            {
-                if (token.IsCancellationRequested) break;
-
-                ConsoleUtils.PrintUsnEntry(console, journal, entry);
-            }
         }
     }
 }

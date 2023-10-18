@@ -2,7 +2,6 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Threading;
-using UsnParser.Native;
 
 namespace UsnParser
 {
@@ -10,19 +9,19 @@ namespace UsnParser
     {
         private MasterFileTableEnumerator? _enumerator;
         private readonly SafeFileHandle _volumeRootHandle;
-        private readonly USN_JOURNAL_DATA_V0 _changeJournal;
         private readonly MasterFileTableEnumerationOptions _options;
+        private readonly long _highUsn;
 
-        public MasterFileTableEnumerable(SafeFileHandle volumeRootHandle, USN_JOURNAL_DATA_V0 changeJournal, MasterFileTableEnumerationOptions? options = null)
+        public MasterFileTableEnumerable(SafeFileHandle volumeRootHandle, long highUsn, MasterFileTableEnumerationOptions? options = null)
         {
             _volumeRootHandle = volumeRootHandle;
-            _changeJournal = changeJournal;
+            _highUsn = highUsn;
             _options = options ?? MasterFileTableEnumerationOptions.Default;
         }
 
         public IEnumerator<UsnEntry> GetEnumerator()
         {
-            return Interlocked.Exchange(ref _enumerator, null) ?? new MasterFileTableEnumerator(_volumeRootHandle, _changeJournal, _options);
+            return Interlocked.Exchange(ref _enumerator, null) ?? new MasterFileTableEnumerator(_volumeRootHandle, _highUsn, _options);
         }
 
         IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();

@@ -11,10 +11,12 @@ namespace UsnParser
     {
         private readonly ChangeJournalEnumerationOptions _options;
         private long _nextStartUsn;
+        private readonly ulong _usnJournalId;
 
-        public ChangeJournalEnumerator(SafeFileHandle volumeRootHandle, USN_JOURNAL_DATA_V0 changeJournal, ChangeJournalEnumerationOptions options)
-            : base(volumeRootHandle, changeJournal, options.BufferSize)
+        public ChangeJournalEnumerator(SafeFileHandle volumeRootHandle, ulong usnJournalId, ChangeJournalEnumerationOptions options)
+            : base(volumeRootHandle, options.BufferSize)
         {
+            _usnJournalId = usnJournalId;
             _options = options;
             _nextStartUsn = options.StartUsn;
         }

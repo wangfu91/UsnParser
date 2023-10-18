@@ -2,7 +2,7 @@
 
     <PropertyGroup>
         <OutputType>Exe</OutputType>
-        <TargetFramework>net7.0-windows</TargetFramework>
+        <TargetFramework>net8.0-windows</TargetFramework>
         <Version>0.1.5</Version>
         <TrimMode>partial</TrimMode>
         <PublishAot>true</PublishAot>

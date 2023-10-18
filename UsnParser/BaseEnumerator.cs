@@ -12,8 +12,7 @@ namespace UsnParser
         protected bool _disposed;
         protected IntPtr _buffer;
         protected readonly int _bufferLength;
-        protected readonly SafeFileHandle _volumeRootHandle;
-        protected readonly ulong _usnJournalId;
+        protected readonly SafeFileHandle _volumeRootHandle;        
         protected uint _offset;
         protected uint _bytesRead;
         protected USN_RECORD_V2* _record;
@@ -23,10 +22,9 @@ namespace UsnParser
 
         object IEnumerator.Current => Current;
 
-        public BaseEnumerator(SafeFileHandle volumeRootHandle, USN_JOURNAL_DATA_V0 changeJournal, int bufferSize)
+        public BaseEnumerator(SafeFileHandle volumeRootHandle, int bufferSize)
         {
             _volumeRootHandle = volumeRootHandle;
-            _usnJournalId = changeJournal.UsnJournalID;
             _bufferLength = bufferSize;
             _buffer = Marshal.AllocHGlobal(_bufferLength);
         }
