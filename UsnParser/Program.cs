@@ -119,6 +119,7 @@ namespace UsnParser
                 foreach (var entry in usnEntries)
                 {
                     if (_cancellationToken.IsCancellationRequested) return -1;
+
                     _console.PrintUsnEntry(usnJournal, entry);
                 }
                 return 0;
@@ -133,9 +134,17 @@ namespace UsnParser
                 var usnEntries = usnJournal.EnumerateMasterFileTable(usnJournal.JournalInfo.NextUsn, _filterOptions);
                 foreach (var entry in usnEntries)
                 {
+                    usnJournal.TryGetPathFromFileId(entry.ParentFileReferenceNumber, out var _);
+                    if (entry.IsFolder)
+                    {
+                        usnJournal._totalDirCount++;
+                    }
+
+                    /*
                     if (_cancellationToken.IsCancellationRequested) return -1;
 
                     _console.PrintEntryPath(usnJournal, entry);
+                    */
                 }
                 return 0;
             }

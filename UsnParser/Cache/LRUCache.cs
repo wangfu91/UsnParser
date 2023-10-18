@@ -2,7 +2,7 @@
 
 namespace UsnParser.Cache
 {
-    // Copied from:
+    // Adapted from:
     // https://github.com/microsoft/botbuilder-dotnet/blob/main/libraries/AdaptiveExpressions/LRUCache.cs
 
     /// <summary>
@@ -15,7 +15,7 @@ namespace UsnParser.Cache
         /// <summary>
         /// Default maximum number of elements to cache.
         /// </summary>
-        private const int DefaultCapacity = 255;
+        private const int DefaultCapacity = 64 * 1024;
 
         private readonly object _lockObj = new();
         private readonly int _capacity;
