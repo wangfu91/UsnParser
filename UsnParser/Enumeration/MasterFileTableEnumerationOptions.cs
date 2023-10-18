@@ -2,6 +2,6 @@
 {
     public class MasterFileTableEnumerationOptions : BaseEnumerationOptions
     {
-        public static MasterFileTableEnumerationOptions Default => new();
+        public static MasterFileTableEnumerationOptions Default { get; } = new();
     }
 }

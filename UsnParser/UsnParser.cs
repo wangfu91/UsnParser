@@ -40,31 +40,27 @@ namespace UsnParser
     {
         [Argument(0, Description = "Volume pathname, e.g. C: <Required>")]
         [Required]
-        public string Volume { get; set; }
+        public required string Volume { get; set; }
+
+        [Option("-f|--filter", Description = "Filter the result with keyword, wildcards are permitted")]
+        public string? Keyword { get; set; }
 
         [Option("-fo|--FileOnly", Description = "Only show the file entries")]
         public bool FileOnly { get; set; }
 
-        [Option("-do|--DirOnly", Description = "Only show the directory entries")]
+        [Option("-do|--DirectoryOnly", Description = "Only show the directory entries")]
         public bool DirectoryOnly { get; set; }
+
+        [Option("--ignoreCase", Description = "Use case-insensitive matching")]
+        public bool IgnoreCase { get; set; }
 
         protected CancellationToken _cancellationToken;
 
         protected readonly IConsole _console = PhysicalConsole.Singleton;
 
-        public FilterOption FilterOption
-        {
-            get
-            {
-                if (FileOnly) return FilterOption.OnlyFiles;
-                if (DirectoryOnly) return FilterOption.OnlyDirectories;
-                return FilterOption.All;
-            }
-        }
+        protected FilterOptions _filterOptions = FilterOptions.Default;
 
-        protected abstract int OnExecute(CommandLineApplication app);
-
-        protected int ExecuteCommand(Func<UsnJournal, int> op)
+        protected int OnExecute(CommandLineApplication app)
         {
             try
             {
@@ -89,7 +85,8 @@ namespace UsnParser
                 _console.PrintUsnJournalState(usnJournal.JournalInfo);
 #endif
 
-                return op(usnJournal);
+                _filterOptions = new FilterOptions(Keyword, FileOnly, DirectoryOnly, IgnoreCase);
+                return Run(usnJournal);
             }
             catch (Exception ex)
             {
@@ -104,6 +101,8 @@ namespace UsnParser
             }
         }
 
+        protected abstract int Run(UsnJournal usnJournal);
+
         private static bool HasAdministratorPrivilege()
         {
             using var identity = WindowsIdentity.GetCurrent();
@@ -115,67 +114,47 @@ namespace UsnParser
     [Command("monitor", Description = "Monitor real-time USN journal changes")]
     internal class MonitorCommand : SubCommandBase
     {
-        [Option("-f|--filter", Description = "Filter the result with keyword, wildcards are permitted")]
-        public string? Keyword { get; set; }
-
-        protected override int OnExecute(CommandLineApplication app)
+        protected override int Run(UsnJournal usnJournal)
         {
-            return ExecuteCommand(usnJournal =>
+            var usnEntries = usnJournal.MonitorLiveUsn(usnJournal.JournalInfo.UsnJournalID, usnJournal.JournalInfo.NextUsn, _filterOptions);
+            foreach (var entry in usnEntries)
             {
-                var usnEntries = usnJournal.MonitorLiveUsn(usnJournal.JournalInfo.UsnJournalID, usnJournal.JournalInfo.NextUsn, Keyword, FilterOption);
-
-                foreach (var entry in usnEntries)
-                {
-                    if (_cancellationToken.IsCancellationRequested) return -1;
-                    _console.PrintUsnEntry(usnJournal, entry);
-                }
-                return 0;
-            });
+                if (_cancellationToken.IsCancellationRequested) return -1;
+                _console.PrintUsnEntry(usnJournal, entry);
+            }
+            return 0;
         }
     }
 
     [Command("search", Description = "Search the Master File Table")]
     internal class SearchCommand : SubCommandBase
     {
-        [Argument(1, Description = "Search keyword, wildcards are permitted")]
-        public string? Keyword { get; set; }
-
-        protected override int OnExecute(CommandLineApplication app)
+        protected override int Run(UsnJournal usnJournal)
         {
-            return ExecuteCommand(usnJournal =>
+            var usnEntries = usnJournal.EnumerateMasterFileTable(usnJournal.JournalInfo.NextUsn, _filterOptions);
+            foreach (var entry in usnEntries)
             {
-                var usnEntries = usnJournal.EnumerateMasterFileTable(Keyword, FilterOption, usnJournal.JournalInfo.NextUsn);
+                if (_cancellationToken.IsCancellationRequested) return -1;
 
-                foreach (var entry in usnEntries)
-                {
-                    if (_cancellationToken.IsCancellationRequested) return -1;
-
-                    _console.PrintEntryPath(usnJournal, entry);
-                }
-                return 0;
-            });
+                _console.PrintEntryPath(usnJournal, entry);
+            }
+            return 0;
         }
     }
 
     [Command("read", Description = "Read history USN journal entries")]
     internal class ReadCommand : SubCommandBase
     {
-        [Option("-f|--filter", Description = "Filter the result with keyword, wildcards are permitted")]
-        public string? Keyword { get; set; }
-
-        protected override int OnExecute(CommandLineApplication app)
+        protected override int Run(UsnJournal usnJournal)
         {
-            return ExecuteCommand(usnJournal =>
+            var usnEntries = usnJournal.EnumerateUsnEntries(usnJournal.JournalInfo.UsnJournalID, _filterOptions);
+            foreach (var entry in usnEntries)
             {
-                var usnEntries = usnJournal.EnumerateUsnEntries(usnJournal.JournalInfo.UsnJournalID, Keyword, FilterOption);
-                foreach (var entry in usnEntries)
-                {
-                    if (_cancellationToken.IsCancellationRequested) return -1;
+                if (_cancellationToken.IsCancellationRequested) return -1;
 
-                    _console.PrintUsnEntry(usnJournal, entry);
-                }
-                return 0;
-            });
+                _console.PrintUsnEntry(usnJournal, entry);
+            }
+            return 0;
         }
     }
 }

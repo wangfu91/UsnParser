@@ -2,7 +2,7 @@
 {
     public class ChangeJournalEnumerationOptions : BaseEnumerationOptions
     {
-        public static ChangeJournalEnumerationOptions Default => new();
+        public static ChangeJournalEnumerationOptions Default { get; } = new();
 
         public bool ReturnOnlyOnClose { get; set; }
 

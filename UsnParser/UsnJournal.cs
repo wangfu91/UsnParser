@@ -107,41 +107,32 @@ namespace UsnParser
             }
         }
 
-        public IEnumerable<UsnEntry> EnumerateMasterFileTable(string? keyword, FilterOption filterOption, long highUsn)
+        public IEnumerable<UsnEntry> EnumerateMasterFileTable(long highUsn, FilterOptions filterOptions)
         {
             // Note: 
             // In ReFS there is no MFT and subsequently no MFT entries.
             // http://www.resilientfilesystem.co.uk/refs-master-file-table
 
             var options = MasterFileTableEnumerationOptions.Default;
-            return new MasterFileTableEnumerable(_volumeRootHandle, highUsn, options, Filter(keyword, filterOption));
+            return new MasterFileTableEnumerable(_volumeRootHandle, highUsn, options, Filter(filterOptions));
         }
 
-        private static FindPredicate Filter(string? keyword, FilterOption filterOption)
+        private static FindPredicate Filter(FilterOptions filterOptions)
         {
             return usnEntry =>
             {
-                switch (filterOption)
-                {
-                    case FilterOption.OnlyFiles when usnEntry.IsFolder:
-                    case FilterOption.OnlyDirectories when !usnEntry.IsFolder:
-                        return false;
-                }
+                if (filterOptions.FileOnly && usnEntry.IsFolder) return false;
+                if (filterOptions.DirectoryOnly && !usnEntry.IsFolder) return false;
 
-                if (string.IsNullOrWhiteSpace(keyword))
-                {
-                    return true;
-                }
-                else
-                {
-                    var globOptions = new GlobOptions { Evaluation = { CaseInsensitive = true } };
-                    var glob = Glob.Parse(keyword, globOptions);
-                    return glob.IsMatch(usnEntry.Name.AsSpan());
-                }
+                if (string.IsNullOrWhiteSpace(filterOptions.Keyword)) return true;
+
+                var globOptions = new GlobOptions { Evaluation = { CaseInsensitive = filterOptions.IgnoreCase } };
+                var glob = Glob.Parse(filterOptions.Keyword, globOptions);
+                return glob.IsMatch(usnEntry.Name.AsSpan());
             };
         }
 
-        public IEnumerable<UsnEntry> MonitorLiveUsn(ulong usnJournalId, long startUsn, string? keyword, FilterOption filterOption)
+        public IEnumerable<UsnEntry> MonitorLiveUsn(ulong usnJournalId, long startUsn, FilterOptions filterOptions)
         {
             var options = new ChangeJournalEnumerationOptions
             {
@@ -150,10 +141,10 @@ namespace UsnParser
                 ReturnOnlyOnClose = false,
                 StartUsn = startUsn,
             };
-            return new ChangeJournalEnumerable(_volumeRootHandle, usnJournalId, options, Filter(keyword, filterOption));
+            return new ChangeJournalEnumerable(_volumeRootHandle, usnJournalId, options, Filter(filterOptions));
         }
 
-        public IEnumerable<UsnEntry> EnumerateUsnEntries(ulong usnJournalId, string? keyword, FilterOption filterOption)
+        public IEnumerable<UsnEntry> EnumerateUsnEntries(ulong usnJournalId, FilterOptions filterOptions)
         {
             var options = new ChangeJournalEnumerationOptions
             {
@@ -162,7 +153,7 @@ namespace UsnParser
                 ReturnOnlyOnClose = false,
                 StartUsn = 0,
             };
-            return new ChangeJournalEnumerable(_volumeRootHandle, usnJournalId, options, Filter(keyword, filterOption));
+            return new ChangeJournalEnumerable(_volumeRootHandle, usnJournalId, options, Filter(filterOptions));
         }
 
         private SafeFileHandle GetVolumeRootHandle()
