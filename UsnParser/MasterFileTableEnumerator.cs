@@ -1,7 +1,5 @@
 ﻿using Microsoft.Win32.SafeHandles;
 using System;
-using System.Collections;
-using System.Collections.Generic;
 using System.ComponentModel;
 using System.Runtime.InteropServices;
 using UsnParser.Native;
@@ -9,31 +7,17 @@ using static UsnParser.Native.Kernel32;
 
 namespace UsnParser
 {
-    internal unsafe class MasterFileTableEnumerator : IEnumerator<UsnEntry>
+    internal unsafe class MasterFileTableEnumerator : BaseEnumerator
     {
-        private bool _disposed;
-        private IntPtr _buffer;
-        private readonly int _bufferLength;
-        private readonly SafeFileHandle _volumeRootHandle;
-        private uint _offset;
-        private uint _bytesRead;
         private ulong _nextStartFileId;
         private readonly long _highUsn;
-        private USN_RECORD_V2* _record;
-        private UsnEntry _current;
         private readonly MasterFileTableEnumerationOptions _options;
 
-        public UsnEntry Current => _current;
-
-        object IEnumerator.Current => Current;
-
-        public MasterFileTableEnumerator(SafeFileHandle volumeRootHandle, USN_JOURNAL_DATA_V0 changeJournalData, MasterFileTableEnumerationOptions? options)
+        public MasterFileTableEnumerator(SafeFileHandle volumeRootHandle, USN_JOURNAL_DATA_V0 changeJournalData, MasterFileTableEnumerationOptions options)
+            : base(volumeRootHandle, changeJournalData, options.BufferSize)
         {
-            _volumeRootHandle = volumeRootHandle;
             _highUsn = changeJournalData.NextUsn;
-            _options = options ?? MasterFileTableEnumerationOptions.Default;
-            _bufferLength = _options.BufferSize;
-            _buffer = Marshal.AllocHGlobal(_bufferLength);
+            _options = options;
         }
 
         private unsafe bool GetData()
@@ -80,7 +64,7 @@ namespace UsnParser
             }
         }
 
-        private unsafe void FindNextRecord()
+        protected override unsafe void FindNextEntry()
         {
             if (_record != null && _offset < _bytesRead)
             {
@@ -105,56 +89,6 @@ namespace UsnParser
 
             // EOF, no more records
             _record = default;
-        }
-
-        public bool MoveNext()
-        {
-            FindNextRecord();
-            if (_record == null) return false;
-
-            _current = new UsnEntry(_record);
-            return true;
-        }
-
-        public void Reset()
-        {
-            throw new NotSupportedException();
-        }
-
-        protected virtual void Dispose(bool disposing)
-        {
-            if (!_disposed)
-            {
-                if (disposing)
-                {
-                    // Dispose managed state (managed objects)
-                }
-
-                // Free unmanaged resources (unmanaged objects) and override finalizer
-                // Set large fields to null
-                if (_buffer != default)
-                {
-                    Marshal.FreeHGlobal(_buffer);
-                }
-
-                _buffer = default;
-
-                _disposed = true;
-            }
-        }
-
-        // Override finalizer only if 'Dispose(bool disposing)' has code to free unmanaged resources
-        ~MasterFileTableEnumerator()
-        {
-            // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
-            Dispose(disposing: false);
-        }
-
-        public void Dispose()
-        {
-            // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
-            Dispose(disposing: true);
-            GC.SuppressFinalize(this);
         }
     }
 }

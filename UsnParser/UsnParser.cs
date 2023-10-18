@@ -24,7 +24,7 @@ namespace UsnParser
 
         private static string GetVersion()
                 => Assembly.GetExecutingAssembly()
-                           .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion;
+                           .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? "Unknown";
 
 #pragma warning disable CA1822 // Mark members as static
         private int OnExecute(CommandLineApplication app)

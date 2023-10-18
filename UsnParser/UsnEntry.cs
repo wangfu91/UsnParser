@@ -29,8 +29,8 @@ namespace UsnParser
 
         public string Name { get; }
 
-        private string _oldName;
-        public string OldName
+        private string? _oldName;
+        public string? OldName
         {
             get => 0 != (_fileAttributes & (uint)UsnReason.RENAME_OLD_NAME) ? _oldName : null;
             set => _oldName = value;

@@ -2,14 +2,7 @@
 {
     public class ChangeJournalEnumerationOptions : BaseEnumerationOptions
     {
-        public ChangeJournalEnumerationOptions()
-        {
-        }
-
-        /// <summary>
-        /// Singleton instance of <see cref="ChangeJournalEnumerationOptions"/> with default values.
-        /// </summary>
-        public static ChangeJournalEnumerationOptions Default { get; } = new ChangeJournalEnumerationOptions();
+        public static ChangeJournalEnumerationOptions Default => new();
 
         public bool ReturnOnlyOnClose { get; set; }
 

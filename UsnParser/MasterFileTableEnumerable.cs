@@ -8,16 +8,16 @@ namespace UsnParser
 {
     public class MasterFileTableEnumerable : IEnumerable<UsnEntry>
     {
-        private MasterFileTableEnumerator _enumerator;
+        private MasterFileTableEnumerator? _enumerator;
         private readonly SafeFileHandle _volumeRootHandle;
         private readonly USN_JOURNAL_DATA_V0 _changeJournal;
-        private readonly MasterFileTableEnumerationOptions? _options;
+        private readonly MasterFileTableEnumerationOptions _options;
 
         public MasterFileTableEnumerable(SafeFileHandle volumeRootHandle, USN_JOURNAL_DATA_V0 changeJournal, MasterFileTableEnumerationOptions? options = null)
         {
             _volumeRootHandle = volumeRootHandle;
             _changeJournal = changeJournal;
-            _options = options;
+            _options = options ?? MasterFileTableEnumerationOptions.Default;
         }
 
         public IEnumerator<UsnEntry> GetEnumerator()

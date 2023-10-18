@@ -1,7 +1,5 @@
 ﻿using Microsoft.Win32.SafeHandles;
 using System;
-using System.Collections;
-using System.Collections.Generic;
 using System.ComponentModel;
 using System.Runtime.InteropServices;
 using UsnParser.Native;
@@ -9,23 +7,16 @@ using static UsnParser.Native.Kernel32;
 
 namespace UsnParser
 {
-    internal unsafe class ChangeJournalEnumerator : BaseEnumerator, IEnumerator<UsnEntry>
+    internal unsafe class ChangeJournalEnumerator : BaseEnumerator
     {
         private readonly ChangeJournalEnumerationOptions _options;
+        private long _nextStartUsn;
 
-        public UsnEntry Current => _current;
-
-        object? IEnumerator.Current => Current;
-
-        public ChangeJournalEnumerator(SafeFileHandle volumeRootHandle, USN_JOURNAL_DATA_V0 changeJournal, ChangeJournalEnumerationOptions? options = null)
-            :base(volumeRootHandle, changeJournal, options)
+        public ChangeJournalEnumerator(SafeFileHandle volumeRootHandle, USN_JOURNAL_DATA_V0 changeJournal, ChangeJournalEnumerationOptions options)
+            : base(volumeRootHandle, changeJournal, options.BufferSize)
         {
-            _volumeRootHandle = volumeRootHandle;
-            _usnJournalId = changeJournal.UsnJournalID;
-            _options = options ?? ChangeJournalEnumerationOptions.Default;
-            _nextStartUsn = _options.StartUsn;
-            _bufferLength = _options.BufferSize;
-            _buffer = Marshal.AllocHGlobal(_bufferLength);
+            _options = options;
+            _nextStartUsn = options.StartUsn;
         }
 
         private unsafe bool GetData()
@@ -70,7 +61,7 @@ namespace UsnParser
             }
         }
 
-        private unsafe void FindNextRecord()
+        protected override unsafe void FindNextEntry()
         {
             if (_record != null && _offset < _bytesRead)
             {
@@ -96,56 +87,6 @@ namespace UsnParser
 
             // EOF, no more records
             _record = default;
-        }
-
-        public bool MoveNext()
-        {
-            FindNextRecord();
-            if (_record == null) return false;
-
-            _current = new UsnEntry(_record);
-            return true;
-        }
-
-        public void Reset()
-        {
-            throw new NotSupportedException();
-        }
-
-        protected virtual void Dispose(bool disposing)
-        {
-            if (!_disposed)
-            {
-                if (disposing)
-                {
-                    // Dispose managed state (managed objects)
-                }
-
-                // Free unmanaged resources (unmanaged objects) and override finalizer
-                // Set large fields to null
-                if (_buffer != default)
-                {
-                    Marshal.FreeHGlobal(_buffer);
-                }
-
-                _buffer = default;
-
-                _disposed = true;
-            }
-        }
-
-        // Override finalizer only if 'Dispose(bool disposing)' has code to free unmanaged resources
-        ~ChangeJournalEnumerator()
-        {
-            // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
-            Dispose(disposing: false);
-        }
-
-        public void Dispose()
-        {
-            // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
-            Dispose(disposing: true);
-            GC.SuppressFinalize(this);
         }
     }
 }

@@ -113,7 +113,7 @@ namespace UsnParser
             }
         }
 
-        public unsafe bool TryGetPathFromFileId(ulong frn, out string path)
+        public unsafe bool TryGetPathFromFileId(ulong frn, out string? path)
         {
             if (!_isUsnSupported)
                 throw new Exception($"{_driveInfo.Name} is not an NTFS volume.");
