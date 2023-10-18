@@ -49,7 +49,7 @@ namespace UsnParser
 
                 if (!success)
                 {
-                    var error = Marshal.GetLastPInvokeError();
+                    var error = Marshal.GetLastWin32Error();
                     if (error != (int)Win32Error.ERROR_HANDLE_EOF)
                     {
                         throw new Win32Exception(error);

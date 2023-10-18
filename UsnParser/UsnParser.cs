@@ -62,12 +62,9 @@ namespace UsnParser
             }
         }
 
-        protected UsnJournal _usnJournal;
-        protected USN_JOURNAL_DATA_V0 _usnJournalData;
-
         protected abstract int OnExecute(CommandLineApplication app);
 
-        protected int ExecuteCommand(Func<int> op)
+        protected int ExecuteCommand(Func<UsnJournal, int> op)
         {
             try
             {
@@ -87,14 +84,13 @@ namespace UsnParser
                 }
 
                 var driveInfo = new DriveInfo(Volume);
-                using (_usnJournal = new UsnJournal(driveInfo))
+                using (var usnJournal = new UsnJournal(driveInfo))
                 {
-                    _usnJournalData = _usnJournal.GetUsnJournalState();
 #if DEBUG
-                    _console.PrintUsnJournalState(_usnJournalData);
+                    _console.PrintUsnJournalState(usnJournal.JournalInfo);
 #endif
 
-                    return op();
+                    return op(usnJournal);
                 }
             }
             catch (Exception ex)
@@ -126,14 +122,14 @@ namespace UsnParser
 
         protected override int OnExecute(CommandLineApplication app)
         {
-            return ExecuteCommand(() =>
+            return ExecuteCommand(usnJournal =>
             {
-                var usnEntries = _usnJournal.GetUsnJournalEntries(_usnJournalData.UsnJournalID, _usnJournalData.NextUsn, Keyword, FilterOption);
+                var usnEntries = usnJournal.MonitorLiveUsn(usnJournal.JournalInfo.UsnJournalID, usnJournal.JournalInfo.NextUsn, Keyword, FilterOption);
 
                 foreach (var entry in usnEntries)
                 {
                     if (_cancellationToken.IsCancellationRequested) return -1;
-                    _console.PrintUsnEntry(_usnJournal, entry);
+                    _console.PrintUsnEntry(usnJournal, entry);
                 }
                 return 0;
             });
@@ -148,16 +144,16 @@ namespace UsnParser
 
         protected override int OnExecute(CommandLineApplication app)
         {
-            return ExecuteCommand(() =>
+            return ExecuteCommand(usnJournal =>
             {
                 // Search through NTFS Master File Table
-                var usnEntries = _usnJournal.EnumerateUsnEntries(Keyword, FilterOption, _usnJournalData.NextUsn);
+                var usnEntries = usnJournal.EnumerateMasterFileTable(Keyword, FilterOption, usnJournal.JournalInfo.NextUsn);
 
                 foreach (var entry in usnEntries)
                 {
                     if (_cancellationToken.IsCancellationRequested) return -1;
 
-                    _console.PrintEntryPath(_usnJournal, entry);
+                    _console.PrintEntryPath(usnJournal, entry);
                 }
                 return 0;
             });
@@ -172,15 +168,15 @@ namespace UsnParser
 
         protected override int OnExecute(CommandLineApplication app)
         {
-            return ExecuteCommand(() =>
+            return ExecuteCommand(usnJournal =>
             {
-                var usnEntries = _usnJournal.ReadUsnEntries(_usnJournalData.UsnJournalID, Keyword, FilterOption);
+                var usnEntries = usnJournal.EnumerateUsnEntries(usnJournal.JournalInfo.UsnJournalID, Keyword, FilterOption);
 
                 foreach (var entry in usnEntries)
                 {
                     if (_cancellationToken.IsCancellationRequested) return -1;
 
-                    _console.PrintUsnEntry(_usnJournal, entry);
+                    _console.PrintUsnEntry(usnJournal, entry);
                 }
                 return 0;
             });
