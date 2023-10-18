@@ -6,6 +6,7 @@ using System.Reflection;
 using System.Security.Principal;
 using System.Threading;
 using McMaster.Extensions.CommandLineUtils;
+using UsnParser.Extensions;
 using UsnParser.Native;
 
 namespace UsnParser

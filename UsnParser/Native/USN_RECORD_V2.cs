@@ -299,7 +299,7 @@ namespace UsnParser.Native
         /// The attributes for the file or directory associated with this record, as returned by the GetFileAttributes function.
         /// Attributes of streams associated with the file or directory are excluded.
         /// </summary>
-        public uint FileAttributes;
+        public FileFlagsAndAttributes FileAttributes;
 
         /// <summary>
         /// The length of the name of the file or directory associated with this record, in bytes. The <c>FileName</c> member contains

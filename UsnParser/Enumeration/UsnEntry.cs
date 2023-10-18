@@ -3,22 +3,16 @@ using UsnParser.Native;
 
 namespace UsnParser.Enumeration
 {
-    /// <summary>The 32bit File Name Length, the 32bit File Name Offset and the File Name.</summary>
     public unsafe class UsnEntry
     {
-        /// <summary>The 32bit USN Record Length.</summary>
         public uint RecordLength { get; }
 
-        /// <summary>The 64bit USN.</summary>
         public long USN { get; }
 
-        /// <summary>The 64bit TimeStamp.</summary>
         public DateTimeOffset TimeStamp { get; set; }
 
-        /// <summary>The 64bit File Reference Number.</summary>
         public ulong FileReferenceNumber { get; }
 
-        /// <summary>The 64bit Parent File Reference Number.</summary>
         public ulong ParentFileReferenceNumber { get; }
 
         public UsnReason Reason { get; }
@@ -27,19 +21,13 @@ namespace UsnParser.Enumeration
 
         public uint SecurityId { get; }
 
-        public string Name { get; }
+        public string FileName { get; }
 
-        private string? _oldName;
-        public string? OldName
-        {
-            get => 0 != (_fileAttributes & (uint)UsnReason.RENAME_OLD_NAME) ? _oldName : null;
-            set => _oldName = value;
-        }
+        private FileFlagsAndAttributes Attributes { get; }
 
-        /// <summary>The 32bit File Attributes.</summary>
-        private readonly uint _fileAttributes;
+        public bool IsFolder => (Attributes & FileFlagsAndAttributes.FILE_ATTRIBUTE_DIRECTORY) != 0;
 
-        public bool IsFolder => (_fileAttributes & (uint)FileFlagsAndAttributes.FILE_ATTRIBUTE_DIRECTORY) != 0;
+        public bool IsHidden => (Attributes & FileFlagsAndAttributes.FILE_ATTRIBUTE_HIDDEN) != 0;
 
         public UsnEntry(USN_RECORD_V2* record)
         {
@@ -51,8 +39,8 @@ namespace UsnParser.Enumeration
             Reason = record->Reason;
             SourceInfo = record->SourceInfo;
             SecurityId = record->SecurityId;
-            _fileAttributes = record->FileAttributes;
-            Name = record->FileName.ToString();
+            Attributes = record->FileAttributes;
+            FileName = record->FileName.ToString();
         }
     }
 }

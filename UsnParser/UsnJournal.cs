@@ -128,7 +128,7 @@ namespace UsnParser
 
                 var globOptions = new GlobOptions { Evaluation = { CaseInsensitive = filterOptions.IgnoreCase } };
                 var glob = Glob.Parse(filterOptions.Keyword, globOptions);
-                return glob.IsMatch(usnEntry.Name.AsSpan());
+                return glob.IsMatch(usnEntry.FileName);
             };
         }
 
