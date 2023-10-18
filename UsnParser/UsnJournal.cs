@@ -12,6 +12,9 @@ using static UsnParser.Native.Ntdll;
 using FileAccess = UsnParser.Native.FileAccess;
 using UsnParser.Enumeration;
 using static UsnParser.Enumeration.BaseEnumerable;
+using UsnParser.Cache;
+using Microsoft.VisualBasic;
+using System.Drawing;
 
 namespace UsnParser
 {
@@ -20,6 +23,7 @@ namespace UsnParser
         private readonly DriveInfo _driveInfo;
         private readonly bool _isChangeJournalSupported;
         private readonly SafeFileHandle _volumeRootHandle;
+        private readonly LRUCache<long, string> _lruCache;
 
         public string VolumeName { get; }
 
@@ -39,6 +43,7 @@ namespace UsnParser
             }
 
             _volumeRootHandle = GetVolumeRootHandle();
+            _lruCache = new LRUCache<long, string>(4096);
             Init();
         }
 
@@ -210,78 +215,78 @@ namespace UsnParser
 
         public unsafe bool TryGetPathFromFileId(ulong frn, out string? path)
         {
-            if (!_isChangeJournalSupported)
-                throw new Exception($"{_driveInfo.Name} is not an NTFS volume.");
-
-            if (_volumeRootHandle.IsInvalid)
-                throw new Win32Exception((int)Win32Error.ERROR_INVALID_HANDLE);
-
             path = null;
             if (frn == 0) return false;
 
-            long allocationSize = 0;
-            var objAttributes = new OBJECT_ATTRIBUTES();
-            var ioStatusBlock = new IO_STATUS_BLOCK();
-
-            var buffer = Marshal.AllocHGlobal(4096);
-            var refPtr = Marshal.AllocHGlobal(8);
-            var objAttIntPtr = Marshal.AllocHGlobal(sizeof(OBJECT_ATTRIBUTES));
-
-            // Pointer >> fileId.
-            Marshal.WriteInt64(refPtr, (long)frn);
-
-            UNICODE_STRING unicodeString;
-            unicodeString.Length = 8;
-            unicodeString.MaximumLength = 8;
-            unicodeString.Buffer = refPtr;
-            *(UNICODE_STRING*)objAttIntPtr = unicodeString;
-
-            // InitializeObjectAttributes.
-            objAttributes.length = (uint)sizeof(OBJECT_ATTRIBUTES);
-            objAttributes.objectName = objAttIntPtr;
-            objAttributes.rootDirectory = _volumeRootHandle.DangerousGetHandle();
-            objAttributes.attributes = (int)ObjectAttribute.OBJ_CASE_INSENSITIVE;
-            try
+            var unicodeString = new UNICODE_STRING
             {
-                var bSuccess = NtCreateFile(
-                    out var hFile,
-                    FileAccess.GENERIC_READ | FileAccess.GENERIC_WRITE,
-                    objAttributes,
-                    out ioStatusBlock,
-                    allocationSize,
-                    0,
-                    FileShare.ReadWrite,
-                    NtFileMode.FILE_OPEN,
-                    NtFileCreateOptions.FILE_OPEN_BY_FILE_ID | NtFileCreateOptions.FILE_OPEN_FOR_BACKUP_INTENT,
-                    IntPtr.Zero,
-                    0);
+                Length = sizeof(long),
+                MaximumLength = sizeof(long),
+                Buffer = new IntPtr(&frn)
+            };
+            var objAttributes = new OBJECT_ATTRIBUTES
+            {
+                length = (uint)sizeof(OBJECT_ATTRIBUTES),
+                objectName = &unicodeString,
+                rootDirectory = _volumeRootHandle.DangerousGetHandle(),
+                attributes = (int)ObjectAttribute.OBJ_CASE_INSENSITIVE
+            };
 
-                using (hFile)
+            var status = NtCreateFile(
+                out var fileHandle,
+                FileAccess.GENERIC_READ | FileAccess.GENERIC_WRITE,
+                objAttributes,
+                out var ioStatusBlock,
+                0,
+                0,
+                FileShare.ReadWrite | FileShare.Delete,
+                NtFileMode.FILE_OPEN,
+                NtFileCreateOptions.FILE_OPEN_BY_FILE_ID | NtFileCreateOptions.FILE_OPEN_FOR_BACKUP_INTENT,
+                IntPtr.Zero,
+                0);
+
+            using (fileHandle)
+            {
+                if (status == 0)
                 {
-                    if (bSuccess == 0)
+                    var pathBufferSize = 4;//MAX_PATH;
+                    while (true)
                     {
-                        bSuccess = NtQueryInformationFile(hFile, ioStatusBlock, buffer, 4096,
-                            FILE_INFORMATION_CLASS.FileNameInformation);
-
-                        if (bSuccess == 0)
+                        var pathBuffer = Marshal.AllocHGlobal(pathBufferSize);
+                        try
                         {
-                            // The first 4 bytes are the name length.
-                            var nameLength = Marshal.ReadInt32(buffer, 0);
 
-                            // The next bytes are the name.
-                            path = Marshal.PtrToStringUni(new IntPtr(buffer.ToInt64() + 4), nameLength / 2);
-
-                            return true;
+                            status = NtQueryInformationFile(
+                                fileHandle,
+                                ioStatusBlock,
+                                pathBuffer,
+                                (uint)pathBufferSize,
+                                FILE_INFORMATION_CLASS.FileNameInformation);
+                            if (status == 0)
+                            {
+                                var nameInfo = (FILE_NAME_INFORMATION*)pathBuffer;
+                                path = nameInfo->FileName.ToString();
+                                return true;
+                            }
+                            else if (status == STATUS_INFO_LENGTH_MISMATCH || status == STATUS_BUFFER_OVERFLOW)
+                            {
+                                // The buffer size is not large enough to contain the name information,
+                                // increase the buffer size by a factor of 2 then try again.
+                                pathBufferSize *= 2;
+                            }
+                            else
+                            {
+                                return false;
+                            }
+                        }
+                        finally
+                        {
+                            Marshal.FreeHGlobal(pathBuffer);
                         }
                     }
                 }
             }
-            finally
-            {
-                Marshal.FreeHGlobal(buffer);
-                Marshal.FreeHGlobal(objAttIntPtr);
-                Marshal.FreeHGlobal(refPtr);
-            }
+
 
             return false;
         }

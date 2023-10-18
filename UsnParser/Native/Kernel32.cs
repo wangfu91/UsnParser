@@ -7,7 +7,9 @@ namespace UsnParser.Native
 {
     public static partial class Kernel32
     {
-        internal const uint USN_REASON_MASK = 0xFFFFFFFF;
+        internal const uint USN_REASON_MASK_ALL = 0xFFFFFFFF;
+
+        internal const int MAX_PATH = 260; 
 
         // CTL_CODE( DeviceType, Function, Method, Access ) (((DeviceType) << 16) | ((Access) << 14) | ((Function) << 2) | (Method))
         private const uint FILE_DEVICE_FILE_SYSTEM = 0x00000009;

@@ -7,6 +7,12 @@ namespace UsnParser.Native
 {
     public static partial class Ntdll
     {
+        /// <summary>The specified information record length does not match the length that is required for the specified information class.</summary>
+        internal const int STATUS_INFO_LENGTH_MISMATCH = unchecked((int)0xC0000004);
+
+        /// <summary>{Buffer Overflow} The data was too large to fit into the specified buffer.</summary>
+        public const int STATUS_BUFFER_OVERFLOW = unchecked((int)0x80000005);
+
         /// <summary>
         /// The NtQueryInformationFile routine returns various kinds of information about a file object. 
         /// </summary>

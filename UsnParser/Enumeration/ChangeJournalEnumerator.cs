@@ -28,7 +28,7 @@ namespace UsnParser.Enumeration
             var readData = new READ_USN_JOURNAL_DATA_V0
             {
                 StartUsn = _nextStartUsn,
-                ReasonMask = USN_REASON_MASK,
+                ReasonMask = USN_REASON_MASK_ALL,
                 ReturnOnlyOnClose = _options.ReturnOnlyOnClose ? 1u : 0u,
                 Timeout = _options.Timeout,
                 BytesToWaitFor = _options.BytesToWaitFor,
