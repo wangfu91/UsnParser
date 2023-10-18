@@ -36,7 +36,6 @@ namespace UsnParser
             return 1;
         }
 
-
         private abstract class SubCommandBase
         {
             [Argument(0, Description = "Volume pathname, e.g. C: <Required>")]

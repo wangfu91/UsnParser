@@ -21,7 +21,7 @@ namespace UsnParser
         private readonly DriveInfo _driveInfo;
         private readonly bool _isChangeJournalSupported;
         private readonly SafeFileHandle _volumeRootHandle;
-        private readonly LRUCache<long, string> _lruCache;
+        private readonly LRUCache<ulong, string> _lruCache;
 
         public string VolumeName { get; }
 
@@ -41,7 +41,7 @@ namespace UsnParser
             }
 
             _volumeRootHandle = GetVolumeRootHandle();
-            _lruCache = new LRUCache<long, string>(4096);
+            _lruCache = new LRUCache<ulong, string>(4096);
             Init();
         }
 
@@ -215,6 +215,7 @@ namespace UsnParser
         {
             path = null;
             if (frn == 0) return false;
+            if (_lruCache.TryGet(frn, out path)) return true;
 
             var unicodeString = new UNICODE_STRING
             {
@@ -263,6 +264,7 @@ namespace UsnParser
                             {
                                 var nameInfo = (FILE_NAME_INFORMATION*)pathBuffer;
                                 path = nameInfo->FileName.ToString();
+                                _lruCache.Set(frn, path);
                                 return true;
                             }
                             else if (status == STATUS_INFO_LENGTH_MISMATCH || status == STATUS_BUFFER_OVERFLOW)
