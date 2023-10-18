@@ -84,14 +84,12 @@ namespace UsnParser
                 }
 
                 var driveInfo = new DriveInfo(Volume);
-                using (var usnJournal = new UsnJournal(driveInfo))
-                {
+                using var usnJournal = new UsnJournal(driveInfo);
 #if DEBUG
-                    _console.PrintUsnJournalState(usnJournal.JournalInfo);
+                _console.PrintUsnJournalState(usnJournal.JournalInfo);
 #endif
 
-                    return op(usnJournal);
-                }
+                return op(usnJournal);
             }
             catch (Exception ex)
             {
@@ -146,7 +144,6 @@ namespace UsnParser
         {
             return ExecuteCommand(usnJournal =>
             {
-                // Search through NTFS Master File Table
                 var usnEntries = usnJournal.EnumerateMasterFileTable(Keyword, FilterOption, usnJournal.JournalInfo.NextUsn);
 
                 foreach (var entry in usnEntries)
@@ -171,7 +168,6 @@ namespace UsnParser
             return ExecuteCommand(usnJournal =>
             {
                 var usnEntries = usnJournal.EnumerateUsnEntries(usnJournal.JournalInfo.UsnJournalID, Keyword, FilterOption);
-
                 foreach (var entry in usnEntries)
                 {
                     if (_cancellationToken.IsCancellationRequested) return -1;

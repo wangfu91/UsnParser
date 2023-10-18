@@ -1,24 +1,26 @@
 ﻿using Microsoft.Win32.SafeHandles;
-using System;
 using System.ComponentModel;
 using System.Runtime.InteropServices;
 using UsnParser.Native;
+using static UsnParser.Enumeration.BaseEnumerable;
 using static UsnParser.Native.Kernel32;
 
-namespace UsnParser
+namespace UsnParser.Enumeration
 {
     internal unsafe class ChangeJournalEnumerator : BaseEnumerator
     {
         private readonly ChangeJournalEnumerationOptions _options;
         private long _nextStartUsn;
         private readonly ulong _usnJournalId;
+        private readonly FindPredicate? _shouldIncludePredicate;
 
-        public ChangeJournalEnumerator(SafeFileHandle volumeRootHandle, ulong usnJournalId, ChangeJournalEnumerationOptions options)
+        public ChangeJournalEnumerator(SafeFileHandle volumeRootHandle, ulong usnJournalId, ChangeJournalEnumerationOptions options, FindPredicate? shouldIncludePredicate)
             : base(volumeRootHandle, options.BufferSize)
         {
             _usnJournalId = usnJournalId;
             _options = options;
             _nextStartUsn = options.StartUsn;
+            _shouldIncludePredicate = shouldIncludePredicate;
         }
 
         private unsafe bool GetData()
@@ -44,7 +46,7 @@ namespace UsnParser
                     _buffer,
                     _bufferLength,
                     out _bytesRead,
-                    IntPtr.Zero);
+                    nint.Zero);
 
                 if (!success)
                 {
@@ -90,5 +92,8 @@ namespace UsnParser
             // EOF, no more records
             _record = default;
         }
+
+        protected override bool ShouldIncludeEntry(UsnEntry entry) =>
+            _shouldIncludePredicate?.Invoke(entry) ?? true;
     }
 }

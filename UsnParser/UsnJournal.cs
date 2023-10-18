@@ -10,6 +10,8 @@ using Microsoft.Win32.SafeHandles;
 using static UsnParser.Native.Kernel32;
 using static UsnParser.Native.Ntdll;
 using FileAccess = UsnParser.Native.FileAccess;
+using UsnParser.Enumeration;
+using static UsnParser.Enumeration.BaseEnumerable;
 
 namespace UsnParser
 {
@@ -72,12 +74,6 @@ namespace UsnParser
 
         private unsafe void CreateUsnJournal(ulong maxSize, ulong allocationDelta)
         {
-            if (!_isChangeJournalSupported)
-                throw new Exception($"{_driveInfo.Name} is not an NTFS volume.");
-
-            if (_volumeRootHandle.IsInvalid)
-                throw new Win32Exception((int)Win32Error.ERROR_INVALID_HANDLE);
-
             var createData = new CREATE_USN_JOURNAL_DATA
             {
                 MaximumSize = maxSize,
@@ -117,41 +113,36 @@ namespace UsnParser
             // In ReFS there is no MFT and subsequently no MFT entries.
             // http://www.resilientfilesystem.co.uk/refs-master-file-table
 
-            var mftEnumerator = new MasterFileTableEnumerable(_volumeRootHandle, highUsn);
+            var options = MasterFileTableEnumerationOptions.Default;
+            return new MasterFileTableEnumerable(_volumeRootHandle, highUsn, options, Filter(keyword, filterOption));
+        }
 
-            foreach (var entry in mftEnumerator)
+        private static FindPredicate Filter(string? keyword, FilterOption filterOption)
+        {
+            return usnEntry =>
             {
                 switch (filterOption)
                 {
-                    case FilterOption.OnlyFiles when entry.IsFolder:
-                    case FilterOption.OnlyDirectories when !entry.IsFolder:
-                        continue;
+                    case FilterOption.OnlyFiles when usnEntry.IsFolder:
+                    case FilterOption.OnlyDirectories when !usnEntry.IsFolder:
+                        return false;
                 }
 
                 if (string.IsNullOrWhiteSpace(keyword))
                 {
-                    yield return entry;
+                    return true;
                 }
                 else
                 {
-                    var options = new GlobOptions { Evaluation = { CaseInsensitive = true } };
-                    var glob = Glob.Parse(keyword, options);
-                    if (glob.IsMatch(entry.Name.AsSpan()))
-                    {
-                        yield return entry;
-                    }
+                    var globOptions = new GlobOptions { Evaluation = { CaseInsensitive = true } };
+                    var glob = Glob.Parse(keyword, globOptions);
+                    return glob.IsMatch(usnEntry.Name.AsSpan());
                 }
-            }
+            };
         }
 
         public IEnumerable<UsnEntry> MonitorLiveUsn(ulong usnJournalId, long startUsn, string? keyword, FilterOption filterOption)
         {
-            if (!_isChangeJournalSupported)
-                throw new Exception($"{_driveInfo.Name} is not an NTFS/ReFS volume.");
-
-            if (_volumeRootHandle.IsInvalid)
-                throw new Win32Exception((int)Win32Error.ERROR_INVALID_HANDLE);
-
             var options = new ChangeJournalEnumerationOptions
             {
                 BytesToWaitFor = 1,
@@ -159,66 +150,19 @@ namespace UsnParser
                 ReturnOnlyOnClose = false,
                 StartUsn = startUsn,
             };
-            var changeJournalEnumerator = new ChangeJournalEnumerable(_volumeRootHandle, usnJournalId, options);
-
-            foreach (var usnEntry in changeJournalEnumerator)
-            {
-                switch (filterOption)
-                {
-                    case FilterOption.OnlyFiles when usnEntry.IsFolder:
-                    case FilterOption.OnlyDirectories when !usnEntry.IsFolder:
-                        continue;
-                }
-
-                if (string.IsNullOrWhiteSpace(keyword))
-                {
-                    yield return usnEntry;
-                }
-                else
-                {
-                    var globOptions = new GlobOptions { Evaluation = { CaseInsensitive = true } };
-                    var glob = Glob.Parse(keyword, globOptions);
-                    if (glob.IsMatch(usnEntry.Name.AsSpan()))
-                    {
-                        yield return usnEntry;
-                    }
-                }
-            }
+            return new ChangeJournalEnumerable(_volumeRootHandle, usnJournalId, options, Filter(keyword, filterOption));
         }
 
         public IEnumerable<UsnEntry> EnumerateUsnEntries(ulong usnJournalId, string? keyword, FilterOption filterOption)
         {
-            if (!_isChangeJournalSupported)
-                throw new Exception($"{_driveInfo.Name} is not an NTFS/ReFS volume, and does not support change journal.");
-
-            if (_volumeRootHandle.IsInvalid)
-                throw new Win32Exception((int)Win32Error.ERROR_INVALID_HANDLE);
-
-            var changeJournalEnumerator = new ChangeJournalEnumerable(_volumeRootHandle, usnJournalId);
-
-            foreach (var usnEntry in changeJournalEnumerator)
+            var options = new ChangeJournalEnumerationOptions
             {
-                switch (filterOption)
-                {
-                    case FilterOption.OnlyFiles when usnEntry.IsFolder:
-                    case FilterOption.OnlyDirectories when !usnEntry.IsFolder:
-                        continue;
-                }
-
-                if (string.IsNullOrWhiteSpace(keyword))
-                {
-                    yield return usnEntry;
-                }
-                else
-                {
-                    var options = new GlobOptions { Evaluation = { CaseInsensitive = true } };
-                    var glob = Glob.Parse(keyword, options);
-                    if (glob.IsMatch(usnEntry.Name.AsSpan()))
-                    {
-                        yield return usnEntry;
-                    }
-                }
-            }
+                BytesToWaitFor = 0,
+                Timeout = 0,
+                ReturnOnlyOnClose = false,
+                StartUsn = 0,
+            };
+            return new ChangeJournalEnumerable(_volumeRootHandle, usnJournalId, options, Filter(keyword, filterOption));
         }
 
         private SafeFileHandle GetVolumeRootHandle()

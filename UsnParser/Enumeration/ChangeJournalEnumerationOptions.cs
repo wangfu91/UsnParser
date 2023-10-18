@@ -1,4 +1,4 @@
-﻿namespace UsnParser
+﻿namespace UsnParser.Enumeration
 {
     public class ChangeJournalEnumerationOptions : BaseEnumerationOptions
     {

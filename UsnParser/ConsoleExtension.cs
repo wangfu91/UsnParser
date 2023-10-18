@@ -1,19 +1,13 @@
 ﻿using McMaster.Extensions.CommandLineUtils;
 using System;
 using UsnParser;
+using UsnParser.Enumeration;
 using UsnParser.Native;
 
 namespace UsnParser
 {
     public static class ConsoleExtension
     {
-        private static void Write(this IConsole console, ConsoleColor color, string message)
-        {
-            console.ForegroundColor = color;
-            console.Write(message);
-            console.ResetColor();
-        }
-
         private static void WriteLine(this IConsole console, ConsoleColor color, string message)
         {
             console.ForegroundColor = color;

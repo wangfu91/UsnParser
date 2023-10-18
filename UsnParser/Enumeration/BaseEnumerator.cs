@@ -5,14 +5,14 @@ using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using UsnParser.Native;
 
-namespace UsnParser
+namespace UsnParser.Enumeration
 {
     public unsafe abstract class BaseEnumerator : IEnumerator<UsnEntry>
     {
         protected bool _disposed;
-        protected IntPtr _buffer;
+        protected nint _buffer;
         protected readonly int _bufferLength;
-        protected readonly SafeFileHandle _volumeRootHandle;        
+        protected readonly SafeFileHandle _volumeRootHandle;
         protected uint _offset;
         protected uint _bytesRead;
         protected USN_RECORD_V2* _record;
@@ -31,11 +31,19 @@ namespace UsnParser
 
         public bool MoveNext()
         {
-            FindNextEntry();
-            if (_record == null) return false;
+            do
+            {
+                FindNextEntry();
+                if (_record == null) return false;
 
-            _current = new UsnEntry(_record);
-            return true;
+                var entry = new UsnEntry(_record);
+                if (ShouldIncludeEntry(entry))
+                {
+                    _current = entry;
+                    return true;
+                }
+            }
+            while (true);
         }
 
         public void Reset()
@@ -44,6 +52,8 @@ namespace UsnParser
         }
 
         protected unsafe abstract void FindNextEntry();
+
+        protected abstract bool ShouldIncludeEntry(UsnEntry entry);
 
         // Override finalizer only if 'Dispose(bool disposing)' has code to free unmanaged resources
         ~BaseEnumerator()

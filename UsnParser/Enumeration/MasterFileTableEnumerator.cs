@@ -1,23 +1,25 @@
 ﻿using Microsoft.Win32.SafeHandles;
-using System;
 using System.ComponentModel;
 using System.Runtime.InteropServices;
 using UsnParser.Native;
+using static UsnParser.Enumeration.BaseEnumerable;
 using static UsnParser.Native.Kernel32;
 
-namespace UsnParser
+namespace UsnParser.Enumeration
 {
     internal unsafe class MasterFileTableEnumerator : BaseEnumerator
     {
         private ulong _nextStartFileId;
         private readonly long _highUsn;
         private readonly MasterFileTableEnumerationOptions _options;
+        private readonly FindPredicate? _shouldIncludePredicate;
 
-        public MasterFileTableEnumerator(SafeFileHandle volumeRootHandle, long highUsn, MasterFileTableEnumerationOptions options)
+        public MasterFileTableEnumerator(SafeFileHandle volumeRootHandle, long highUsn, MasterFileTableEnumerationOptions options, FindPredicate? shouldIncludePredicate)
             : base(volumeRootHandle, options.BufferSize)
         {
             _highUsn = highUsn;
             _options = options;
+            _shouldIncludePredicate = shouldIncludePredicate;
         }
 
         private unsafe bool GetData()
@@ -45,7 +47,7 @@ namespace UsnParser
                    _buffer,
                    _bufferLength,
                    out _bytesRead,
-                   IntPtr.Zero);
+                   nint.Zero);
 
                 if (!success)
                 {
@@ -90,5 +92,8 @@ namespace UsnParser
             // EOF, no more records
             _record = default;
         }
+
+        protected override bool ShouldIncludeEntry(UsnEntry entry) =>
+            _shouldIncludePredicate?.Invoke(entry) ?? true;
     }
 }

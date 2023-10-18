@@ -1,10 +1,10 @@
 ﻿using System;
 using UsnParser.Native;
 
-namespace UsnParser
+namespace UsnParser.Enumeration
 {
     /// <summary>The 32bit File Name Length, the 32bit File Name Offset and the File Name.</summary>
-    public unsafe class UsnEntry : IComparable<UsnEntry>
+    public unsafe class UsnEntry
     {
         /// <summary>The 32bit USN Record Length.</summary>
         public uint RecordLength { get; }
@@ -47,21 +47,12 @@ namespace UsnParser
             FileReferenceNumber = record->FileReferenceNumber;
             ParentFileReferenceNumber = record->ParentFileReferenceNumber;
             USN = record->Usn;
-            TimeStamp = (record->TimeStamp).ToDateTimeOffset();
+            TimeStamp = record->TimeStamp.ToDateTimeOffset();
             Reason = record->Reason;
             SourceInfo = record->SourceInfo;
             SecurityId = record->SecurityId;
             _fileAttributes = record->FileAttributes;
             Name = record->FileName.ToString();
         }
-
-        #region IComparable<UsnEntry> Members
-
-        public int CompareTo(UsnEntry other)
-        {
-            return string.Compare(Name, other.Name, StringComparison.OrdinalIgnoreCase);
-        }
-
-        #endregion
     }
 }

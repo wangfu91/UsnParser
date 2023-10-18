@@ -2,7 +2,7 @@
   "profiles": {
     "UsnParser": {
       "commandName": "Project",
-      "commandLineArgs": "monitor E:"
+      "commandLineArgs": "search D:"
     }
   }
 }
