@@ -10,14 +10,14 @@ namespace UsnParser.Cache
     /// </summary>
     /// <typeparam name="TKey">The type of the key to the cached item.</typeparam>
     /// <typeparam name="TValue">The type of the cached item.</typeparam>
-    public sealed class LRUCache<TKey, TValue>
+    public sealed class LRUCache<TKey, TValue> where TKey : notnull
     {
         /// <summary>
         /// Default maximum number of elements to cache.
         /// </summary>
         private const int DefaultCapacity = 255;
 
-        private readonly object _lockObj = new object();
+        private readonly object _lockObj = new();
         private readonly int _capacity;
         private readonly Dictionary<TKey, Entry> _cacheMap;
         private readonly LinkedList<TKey> _cacheList;
@@ -37,7 +37,7 @@ namespace UsnParser.Cache
         public LRUCache(int capacity)
         {
             _capacity = capacity > 0 ? capacity : DefaultCapacity;
-            _cacheMap = new Dictionary<TKey, Entry>();
+            _cacheMap = [];
             _cacheList = new LinkedList<TKey>();
         }
 
@@ -49,7 +49,7 @@ namespace UsnParser.Cache
         /// the specified key, if the key is found; otherwise, the default value for the 
         /// type of the <paramref name="value" /> parameter.</param>
         /// <returns>true if contains an element with the specified key; otherwise, false.</returns>
-        public bool TryGet(TKey key, out TValue value)
+        public bool TryGet(TKey key, out TValue? value)
         {
             lock (_lockObj)
             {
@@ -61,7 +61,7 @@ namespace UsnParser.Cache
                 }
             }
 
-            value = default(TValue);
+            value = default;
             return false;
         }
 
@@ -79,7 +79,7 @@ namespace UsnParser.Cache
                     LinkedListNode<TKey> node;
                     if (_cacheMap.Count >= _capacity)
                     {
-                        node = _cacheList.Last;
+                        node = _cacheList.Last!;
                         _cacheMap.Remove(node.Value);
                         _cacheList.RemoveLast();
                         node.Value = key;
@@ -117,8 +117,8 @@ namespace UsnParser.Cache
 
             public Entry(LinkedListNode<TKey> node, TValue value)
             {
-                this.Node = node;
-                this.Value = value;
+                Node = node;
+                Value = value;
             }
         }
     }
