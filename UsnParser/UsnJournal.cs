@@ -129,7 +129,7 @@ namespace UsnParser
 
                 if (string.IsNullOrWhiteSpace(filterOptions.Keyword)) return true;
 
-                var globOptions = new GlobOptions { Evaluation = { CaseInsensitive = filterOptions.IgnoreCase } };
+                var globOptions = new GlobOptions { Evaluation = { CaseInsensitive = !filterOptions.CaseSensitive } };
                 var glob = Glob.Parse(filterOptions.Keyword, globOptions);
                 return glob.IsMatch(usnEntry.FileName);
             };
@@ -211,17 +211,17 @@ namespace UsnParser
             }
         }
 
-        public unsafe bool TryGetPathFromFileId(ulong frn, out string? path)
+        public unsafe bool TryGetPathFromFileId(ulong fileId, out string? path)
         {
             path = null;
-            if (frn == 0) return false;
-            if (_lruCache.TryGet(frn, out path)) return true;
+            if (fileId == 0) return false;
+            if (_lruCache.TryGet(fileId, out path)) return true;
 
             var unicodeString = new UNICODE_STRING
             {
                 Length = sizeof(long),
                 MaximumLength = sizeof(long),
-                Buffer = new IntPtr(&frn)
+                Buffer = new IntPtr(&fileId)
             };
             var objAttributes = new OBJECT_ATTRIBUTES
             {
@@ -264,7 +264,7 @@ namespace UsnParser
                             {
                                 var nameInfo = (FILE_NAME_INFORMATION*)pathBuffer;
                                 path = nameInfo->FileName.ToString();
-                                _lruCache.Set(frn, path);
+                                _lruCache.Set(fileId, path);
                                 return true;
                             }
                             else if (status == STATUS_INFO_LENGTH_MISMATCH || status == STATUS_BUFFER_OVERFLOW)

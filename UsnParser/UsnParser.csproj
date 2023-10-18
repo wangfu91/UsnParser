@@ -3,12 +3,16 @@
     <PropertyGroup>
         <OutputType>Exe</OutputType>
         <TargetFramework>net8.0-windows</TargetFramework>
-        <Version>0.1.5</Version>
-        <TrimMode>partial</TrimMode>
+        <Version>0.2.0</Version>
+        <TrimMode>full</TrimMode>
         <PublishAot>true</PublishAot>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
         <Nullable>enable</Nullable>
     </PropertyGroup>
+
+    <ItemGroup>
+        <TrimmerRootAssembly Include="UsnParser" />
+    </ItemGroup>
 
     <ItemGroup>
         <PackageReference Include="DotNet.Glob" Version="3.1.3" />

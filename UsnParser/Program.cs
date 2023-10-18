@@ -23,9 +23,8 @@ namespace UsnParser
         public static int Main(string[] args)
             => CommandLineApplication.Execute<UsnParser>(args);
 
-        private static string GetVersion()
-                => Assembly.GetExecutingAssembly()
-                           .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? "Unknown";
+        private static string GetVersion() =>
+            typeof(UsnParser).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? "Unknown";
 
 #pragma warning disable CA1822 // Mark members as static
         private int OnExecute(CommandLineApplication app)
@@ -51,8 +50,8 @@ namespace UsnParser
             [Option("-do|--DirectoryOnly", Description = "Only show the directory entries")]
             public bool DirectoryOnly { get; set; }
 
-            [Option("--ignoreCase", Description = "Use case-insensitive matching")]
-            public bool IgnoreCase { get; set; }
+            [Option("--caseSensitive", Description = "Use case-sensitive matching, default is false")]
+            public bool CaseSensitive { get; set; }
 
             protected CancellationToken _cancellationToken;
 
@@ -85,7 +84,7 @@ namespace UsnParser
                     _console.PrintUsnJournalState(usnJournal.JournalInfo);
 #endif
 
-                    _filterOptions = new FilterOptions(Keyword, FileOnly, DirectoryOnly, IgnoreCase);
+                    _filterOptions = new FilterOptions(Keyword, FileOnly, DirectoryOnly, CaseSensitive);
                     return Run(usnJournal);
                 }
                 catch (Exception ex)
