@@ -26,12 +26,12 @@ Run 'UsnParser [command] -h|--help' for more information about a command.
 ### Example
 
 ```bash
-# Search Master File Table of volume D, print out all files who's extension is ".xlsx"
+# Search through Master File Table of volume D, print out all the files who's extension is ".xlsx".
 UsnParser search D: -f *.xlsx
 ```
 
 ```bash
-# Print out all the USN change history of file "Report.docx" in volume D.
+# Print out the change history for file "Report.docx" in the USN journal of volume D.
 UsnParser read D: -f Report.docx
 ```
 
