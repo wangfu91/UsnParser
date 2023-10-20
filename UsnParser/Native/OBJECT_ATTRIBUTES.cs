@@ -27,7 +27,7 @@ namespace UsnParser.Native
     //     running only in kernel mode. Otherwise, the handle can be accessed by the process
     //     in whose context the driver is running.
     [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
-    public struct OBJECT_ATTRIBUTES
+    public unsafe struct OBJECT_ATTRIBUTES
     {
         //
         // Summary:
@@ -50,7 +50,7 @@ namespace UsnParser.Native
         //     Pointer to a Unicode string that contains the name of the object for which a
         //     handle is to be opened. This must either be a fully qualified object name, or
         //     a relative path name to the directory specified by the RootDirectory member.
-        public IntPtr objectName;
+        public UNICODE_STRING* objectName;
 
         //
         // Summary:
