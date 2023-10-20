@@ -43,7 +43,7 @@ namespace UsnParser
             }
 
             _volumeRootHandle = GetVolumeRootHandle();
-            _lruCache = new LRUCache<ulong, string>();
+            _lruCache = new LRUCache<ulong, string>(4096);
             Init();
         }
 
@@ -275,10 +275,18 @@ namespace UsnParser
                                 FILE_INFORMATION_CLASS.FileNameInformation);
                             if (status == STATUS_SUCCESS)
                             {
-                                var nameInfo = (FILE_NAME_INFORMATION*)pathBuffer;
-                                path = Path.Join(VolumeName.TrimEnd(Path.DirectorySeparatorChar), nameInfo->FileName.ToString(), entry.FileName);
-                                _lruCache.Set(parentFileId, path);
                                 _missCount++;
+                                var nameInfo = (FILE_NAME_INFORMATION*)pathBuffer;
+
+                                parentPath = Path.Join(VolumeName.TrimEnd(Path.DirectorySeparatorChar), nameInfo->FileName.ToString());
+                                _lruCache.Set(parentFileId, parentPath);
+
+                                path = Path.Join(parentPath, entry.FileName);
+                                if (entry.IsFolder)
+                                {
+                                    _lruCache.Set(entry.FileReferenceNumber, path);
+                                }
+
                                 return true;
                             }
                             else if (status == STATUS_INFO_LENGTH_MISMATCH || status == STATUS_BUFFER_OVERFLOW)

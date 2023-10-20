@@ -15,7 +15,7 @@ namespace UsnParser.Cache
         /// <summary>
         /// Default maximum number of elements to cache.
         /// </summary>
-        private const int DefaultCapacity = 4 * 1024;
+        private const int DefaultCapacity = 255;
 
         private readonly object _lockObj = new();
         private readonly int _capacity;
