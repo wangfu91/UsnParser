@@ -35,7 +35,7 @@ namespace UsnParser.Extensions
         {
             console.WriteLine();
             console.WriteLine($"{"Type",-20}: {(usnEntry.IsFolder ? "Directory" : "File")}");
-            if (usnJournal.TryGetPathFromFileId(usnEntry.ParentFileReferenceNumber, out var path))
+            if (usnJournal.TryGetPath(usnEntry, out var path))
             {
                 console.WriteLine($"{"Path",-20}: {path}");
             }
@@ -48,7 +48,7 @@ namespace UsnParser.Extensions
             console.WriteLine();
             console.WriteLine($"{"USN",-20}: {usnEntry.USN}");
             console.WriteLine($"{"Type",-20}: {(usnEntry.IsFolder ? "Directory" : "File")}");
-            if (usnJournal.TryGetPathFromFileId(usnEntry.ParentFileReferenceNumber, out var path))
+            if (usnJournal.TryGetPath(usnEntry, out var path))
             {
                 console.WriteLine($"{"Path",-20}: {path}");
             }

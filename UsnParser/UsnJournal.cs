@@ -22,7 +22,6 @@ namespace UsnParser
         private readonly bool _isChangeJournalSupported;
         private readonly SafeFileHandle _volumeRootHandle;
         private readonly LRUCache<ulong, string> _lruCache;
-        private int _hitCount;
         private int _missCount;
         public int _totalDirCount;
 
@@ -214,21 +213,28 @@ namespace UsnParser
             }
         }
 
-        public unsafe bool TryGetPathFromFileId(ulong fileId, out string? path)
+        public unsafe bool TryGetPath(UsnEntry entry, out string? path)
         {
             path = null;
-            if (fileId == 0) return false;
-            if (_lruCache.TryGet(fileId, out path))
+            if (entry.ParentFileReferenceNumber == 0) return false;
+            if (_lruCache.TryGet(entry.FileReferenceNumber, out path))
             {
-                _hitCount++;
                 return true;
             }
 
+            if (_lruCache.TryGet(entry.ParentFileReferenceNumber, out var parentPath))
+            {
+                path = Path.Join(parentPath, entry.FileName);
+                _lruCache.Set(entry.FileReferenceNumber, path);
+                return true;
+            }
+
+            var parentFileId = entry.ParentFileReferenceNumber;
             var unicodeString = new UNICODE_STRING
             {
                 Length = sizeof(long),
                 MaximumLength = sizeof(long),
-                Buffer = new IntPtr(&fileId)
+                Buffer = new IntPtr(&parentFileId)
             };
             var objAttributes = new OBJECT_ATTRIBUTES
             {
@@ -270,8 +276,8 @@ namespace UsnParser
                             if (status == STATUS_SUCCESS)
                             {
                                 var nameInfo = (FILE_NAME_INFORMATION*)pathBuffer;
-                                path = Path.Join(VolumeName.TrimEnd(Path.DirectorySeparatorChar), nameInfo->FileName.ToString());
-                                _lruCache.Set(fileId, path);
+                                path = Path.Join(VolumeName.TrimEnd(Path.DirectorySeparatorChar), nameInfo->FileName.ToString(), entry.FileName);
+                                _lruCache.Set(parentFileId, path);
                                 _missCount++;
                                 return true;
                             }
@@ -307,8 +313,8 @@ namespace UsnParser
 
         private void Dispose(bool disposing)
         {
-            Console.WriteLine($"totalDirCount={_totalDirCount}, hitCount={_hitCount}, missCount={_missCount}");
-            Console.WriteLine($"Cache miss percent: {(_missCount - _totalDirCount) / (double)_totalDirCount}%");
+            Console.WriteLine($"totalDirCount={_totalDirCount}, missCount={_missCount}");
+            Console.WriteLine($"Cache miss percent: {_missCount * 100 / (double)_totalDirCount}%");
 
             if (disposing)
                 _volumeRootHandle.Dispose();

@@ -15,7 +15,7 @@ namespace UsnParser.Cache
         /// <summary>
         /// Default maximum number of elements to cache.
         /// </summary>
-        private const int DefaultCapacity = 64 * 1024;
+        private const int DefaultCapacity = 4 * 1024;
 
         private readonly object _lockObj = new();
         private readonly int _capacity;
@@ -110,16 +110,10 @@ namespace UsnParser.Cache
             }
         }
 
-        private struct Entry
+        private struct Entry(LinkedListNode<TKey> node, TValue value)
         {
-            public LinkedListNode<TKey> Node;
-            public TValue Value;
-
-            public Entry(LinkedListNode<TKey> node, TValue value)
-            {
-                Node = node;
-                Value = value;
-            }
+            public LinkedListNode<TKey> Node = node;
+            public TValue Value = value;
         }
     }
 }
