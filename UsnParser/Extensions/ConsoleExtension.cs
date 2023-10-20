@@ -40,7 +40,7 @@ namespace UsnParser.Extensions
                 console.WriteLine($"{"Path",-20}: {path}");
             }
             console.WriteLine($"{"File ID",-20}: 0x{usnEntry.FileReferenceNumber:x}");
-            console.WriteLine($"{"Parent ID",-20}: 0x{usnEntry.ParentFileReferenceNumber:x}");
+            console.WriteLine($"{"Parent File ID",-20}: 0x{usnEntry.ParentFileReferenceNumber:x}");
         }
 
         public static void PrintUsnEntryFull(this IConsole console, UsnJournal usnJournal, UsnEntry usnEntry)
@@ -55,8 +55,8 @@ namespace UsnParser.Extensions
 
             console.WriteLine($"{"Timestamp",-20}: {usnEntry.TimeStamp.ToLocalTime()}");
 
-            console.WriteLine($"{"File ID",-20}: {usnEntry.FileReferenceNumber:x}");
-            console.WriteLine($"{"Parent ID",-20}: {usnEntry.ParentFileReferenceNumber:x}");
+            console.WriteLine($"{"File ID",-20}: 0x{usnEntry.FileReferenceNumber:x}");
+            console.WriteLine($"{"Parent File ID",-20}: 0x{usnEntry.ParentFileReferenceNumber:x}");
 
             var reason = usnEntry.Reason.ToString().Replace(',', '|');
             console.WriteLine($"{"Reason",-20}: {reason}");
