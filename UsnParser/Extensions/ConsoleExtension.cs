@@ -20,7 +20,7 @@ namespace UsnParser.Extensions
             console.WriteLine(ConsoleColor.Red, message);
         }
 
-        public static void PrintUsnJournalState(this IConsole console, USN_JOURNAL_DATA_V0 usnData)
+        public static void PrintUsnJournalData(this IConsole console, USN_JOURNAL_DATA_V0 usnData)
         {
             console.WriteLine($"{"Journal ID",-20}: 0x{usnData.UsnJournalID:x16}");
             console.WriteLine($"{"First USN",-20}: {usnData.FirstUsn}");
@@ -31,35 +31,32 @@ namespace UsnParser.Extensions
             console.WriteLine($"{"Allocation Delta",-20}: {usnData.AllocationDelta}");
         }
 
-        public static void PrintEntryPath(this IConsole console, UsnJournal usnJournal, UsnEntry usnEntry)
+        public static void PrintUsnEntryBasic(this IConsole console, UsnJournal usnJournal, UsnEntry usnEntry)
         {
             console.WriteLine();
-            console.WriteLine($"{"Name",-20}: {usnEntry.FileName}");
-            console.WriteLine($"{"IsFolder",-20}: {usnEntry.IsFolder}");
+            console.WriteLine($"{"Type",-20}: {(usnEntry.IsFolder ? "Directory" : "File")}");
             if (usnJournal.TryGetPathFromFileId(usnEntry.ParentFileReferenceNumber, out var path))
             {
-                path = $"{usnJournal.VolumeName.TrimEnd('\\')}{path}";
-                console.WriteLine($"{"Parent",-20}: {path}");
+                console.WriteLine($"{"Path",-20}: {path}");
             }
+            console.WriteLine($"{"File ID",-20}: 0x{usnEntry.FileReferenceNumber:x}");
+            console.WriteLine($"{"Parent ID",-20}: 0x{usnEntry.ParentFileReferenceNumber:x}");
         }
 
-        public static void PrintUsnEntry(this IConsole console, UsnJournal usnJournal, UsnEntry usnEntry)
+        public static void PrintUsnEntryFull(this IConsole console, UsnJournal usnJournal, UsnEntry usnEntry)
         {
             console.WriteLine();
             console.WriteLine($"{"USN",-20}: {usnEntry.USN}");
-            console.WriteLine(usnEntry.IsFolder
-                ? $"{"Directory",-20}: {usnEntry.FileName}"
-                : $"{"File",-20}: {usnEntry.FileName}");
+            console.WriteLine($"{"Type",-20}: {(usnEntry.IsFolder ? "Directory" : "File")}");
             if (usnJournal.TryGetPathFromFileId(usnEntry.ParentFileReferenceNumber, out var path))
             {
-                path = $"{usnJournal.VolumeName.TrimEnd('\\')}{path}";
-                console.WriteLine($"{"Parent",-20}: {path}");
+                console.WriteLine($"{"Path",-20}: {path}");
             }
 
             console.WriteLine($"{"Timestamp",-20}: {usnEntry.TimeStamp.ToLocalTime()}");
 
             console.WriteLine($"{"File ID",-20}: {usnEntry.FileReferenceNumber:x}");
-            console.WriteLine($"{"Parent File ID",-20}: {usnEntry.ParentFileReferenceNumber:x}");
+            console.WriteLine($"{"Parent ID",-20}: {usnEntry.ParentFileReferenceNumber:x}");
 
             var reason = usnEntry.Reason.ToString().Replace(',', '|');
             console.WriteLine($"{"Reason",-20}: {reason}");

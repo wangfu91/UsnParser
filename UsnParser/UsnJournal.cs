@@ -270,7 +270,7 @@ namespace UsnParser
                             if (status == STATUS_SUCCESS)
                             {
                                 var nameInfo = (FILE_NAME_INFORMATION*)pathBuffer;
-                                path = nameInfo->FileName.ToString();
+                                path = Path.Join(VolumeName.TrimEnd(Path.DirectorySeparatorChar), nameInfo->FileName.ToString());
                                 _lruCache.Set(fileId, path);
                                 _missCount++;
                                 return true;

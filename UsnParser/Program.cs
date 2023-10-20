@@ -81,7 +81,7 @@ namespace UsnParser
                     var driveInfo = new DriveInfo(Volume);
                     using var usnJournal = new UsnJournal(driveInfo);
 #if DEBUG
-                    _console.PrintUsnJournalState(usnJournal.JournalInfo);
+                    _console.PrintUsnJournalData(usnJournal.JournalInfo);
 #endif
 
                     _filterOptions = new FilterOptions(Keyword, FileOnly, DirectoryOnly, CaseSensitive);
@@ -120,7 +120,7 @@ namespace UsnParser
                 {
                     if (_cancellationToken.IsCancellationRequested) return -1;
 
-                    _console.PrintUsnEntry(usnJournal, entry);
+                    _console.PrintUsnEntryFull(usnJournal, entry);
                 }
                 return 0;
             }
@@ -134,17 +134,9 @@ namespace UsnParser
                 var usnEntries = usnJournal.EnumerateMasterFileTable(usnJournal.JournalInfo.NextUsn, _filterOptions);
                 foreach (var entry in usnEntries)
                 {
-                    usnJournal.TryGetPathFromFileId(entry.ParentFileReferenceNumber, out var _);
-                    if (entry.IsFolder)
-                    {
-                        usnJournal._totalDirCount++;
-                    }
-
-                    /*
                     if (_cancellationToken.IsCancellationRequested) return -1;
 
-                    _console.PrintEntryPath(usnJournal, entry);
-                    */
+                    _console.PrintUsnEntryBasic(usnJournal, entry);
                 }
                 return 0;
             }
@@ -160,7 +152,7 @@ namespace UsnParser
                 {
                     if (_cancellationToken.IsCancellationRequested) return -1;
 
-                    _console.PrintUsnEntry(usnJournal, entry);
+                    _console.PrintUsnEntryFull(usnJournal, entry);
                 }
                 return 0;
             }
