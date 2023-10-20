@@ -19,9 +19,9 @@ namespace UsnParser
     public class UsnJournal : IDisposable
     {
         private readonly DriveInfo _driveInfo;
-        private readonly bool _isChangeJournalSupported;
         private readonly SafeFileHandle _volumeRootHandle;
         private readonly LRUCache<ulong, string> _lruCache;
+        private readonly bool _isReFS;
 
         public string VolumeName { get; }
 
@@ -32,10 +32,10 @@ namespace UsnParser
             _driveInfo = driveInfo;
             VolumeName = driveInfo.Name;
 
-            _isChangeJournalSupported = _driveInfo.DriveFormat.Equals("NTFS", StringComparison.OrdinalIgnoreCase)
-                || _driveInfo.DriveFormat.Equals("ReFs", StringComparison.OrdinalIgnoreCase);
+            var isNTFS = _driveInfo.DriveFormat.Equals("NTFS", StringComparison.OrdinalIgnoreCase);
+            _isReFS = _driveInfo.DriveFormat.Equals("ReFs", StringComparison.OrdinalIgnoreCase);
 
-            if (!_isChangeJournalSupported)
+            if (!(isNTFS || _isReFS))
             {
                 throw new Exception($"{_driveInfo.Name} is not an NTFS or ReFS volume, which does not support USN change journal.");
             }
@@ -87,8 +87,7 @@ namespace UsnParser
             var createDataBuffer = Marshal.AllocHGlobal(createDataSize);
             try
             {
-                ZeroMemory(createDataBuffer, createDataSize);
-                *(CREATE_USN_JOURNAL_DATA*)createDataBuffer = createData;
+                Marshal.StructureToPtr(createData, createDataBuffer, true);
                 var bSuccess = DeviceIoControl(
                    _volumeRootHandle,
                    FSCTL_CREATE_USN_JOURNAL,
@@ -115,6 +114,10 @@ namespace UsnParser
             // Note: 
             // In ReFS there is no MFT and subsequently no MFT entries.
             // http://www.resilientfilesystem.co.uk/refs-master-file-table
+            if (_isReFS)
+            {
+                throw new NotSupportedException($"The file system of drive {VolumeName} is ReFS, which does not have a MTF(Master File Table) to search on.");
+            }
 
             var options = MasterFileTableEnumerationOptions.Default;
             return new MasterFileTableEnumerable(_volumeRootHandle, highUsn, options, Filter(filterOptions));
@@ -184,7 +187,7 @@ namespace UsnParser
         private unsafe USN_JOURNAL_DATA_V0 QueryUsnJournalInfo()
         {
             var journalDataSize = sizeof(USN_JOURNAL_DATA_V0);
-            IntPtr usnJournalStatePtr = Marshal.AllocHGlobal(journalDataSize);
+            var journalDataPtr = Marshal.AllocHGlobal(journalDataSize);
             try
             {
                 var bSuccess = DeviceIoControl(
@@ -192,7 +195,7 @@ namespace UsnParser
                     FSCTL_QUERY_USN_JOURNAL,
                     IntPtr.Zero,
                     0,
-                    usnJournalStatePtr,
+                    journalDataPtr,
                     journalDataSize,
                     out var _,
                     IntPtr.Zero);
@@ -203,11 +206,11 @@ namespace UsnParser
                     throw new Win32Exception(lastError);
                 }
 
-                return Marshal.PtrToStructure<USN_JOURNAL_DATA_V0>(usnJournalStatePtr);
+                return Marshal.PtrToStructure<USN_JOURNAL_DATA_V0>(journalDataPtr);
             }
             finally
             {
-                Marshal.FreeHGlobal(usnJournalStatePtr);
+                Marshal.FreeHGlobal(journalDataPtr);
             }
         }
 

@@ -35,9 +35,10 @@ namespace UsnParser
             return 1;
         }
 
+        [HelpOption("-h|--help", Inherited = true)]
         private abstract class SubCommandBase
         {
-            [Argument(0, Description = "Volume pathname, e.g. C: <Required>")]
+            [Argument(0, Description = "Volume name, e.g. C: <Required>")]
             [Required]
             public required string Volume { get; set; }
 
@@ -68,7 +69,7 @@ namespace UsnParser
 
                     _console.CancelKeyPress += (o, e) =>
                     {
-                        _console.WriteLine("Keyboard interrupt, exiting...");
+                        _console.WriteLine("Ctrl+C is pressed, exiting...");
                         cts.Cancel();
                     };
 
@@ -93,7 +94,7 @@ namespace UsnParser
 
                     if (ex is Win32Exception win32Ex && win32Ex.NativeErrorCode == (int)Win32Error.ERROR_ACCESS_DENIED && !HasAdministratorPrivilege())
                     {
-                        _console.PrintError($"You need system administrator privileges to access the USN journal of {Volume.ToUpper()}.");
+                        _console.PrintError($"You need system administrator privileges to access the USN journal of drive {Volume.ToUpper()}.");
                     }
 
                     return -1;
