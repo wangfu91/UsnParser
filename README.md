@@ -2,13 +2,13 @@
 
  A command utility for NTFS/ReFS to search the MFT & monitoring the changes of USN Journal.
 
+## Download
+
+Latest version can be downloaded from the [releases/latest](https://github.com/wangfu91/UsnParser/releases/latest) page.
+
 ## Usage
 
 ```
-NTFS USN Journal parser 0.1.3
-
-A command utility for NTFS to search the MFT & monitoring the changes of USN Journal.
-
 Usage: UsnParser [command] [options]
 
 Options:
@@ -26,13 +26,13 @@ Run 'UsnParser [command] -h|--help' for more information about a command.
 ### Example
 
 ```bash
-# Search Master File Table of volume C, print out all paths who's file name is "Readme.md"
-UsnParser search C: Readme.md 
+# Search Master File Table of volume D, print out all files who's extension is ".xlsx"
+UsnParser search D: -f *.xlsx
 ```
 
 ```bash
-# Print out all the USN records of file "Readme.md" in volume C.
-UsnParser read C: -f Readme.md 
+# Print out all the USN change history of file "Report.docx" in volume D.
+UsnParser read D: -f Report.docx
 ```
 
 ```bash
@@ -41,7 +41,7 @@ UsnParser monitor C:
 ```
 
 ```bash
-# Monitor realtime USN reacords of volume C, only print out txt files whose name starts with "abc".
+# Monitor realtime USN records of volume C with a filter for txt files whose name starts with "abc".
 UsnParser monitor C: -f abc*.txt 
 ```
 
