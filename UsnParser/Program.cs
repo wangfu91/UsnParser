@@ -136,11 +136,6 @@ namespace UsnParser
                 {
                     if (_cancellationToken.IsCancellationRequested) return -1;
 
-                    if (entry.IsFolder)
-                    {
-                        usnJournal._totalDirCount++;
-                    }
-
                     _console.PrintUsnEntryBasic(usnJournal, entry);
                 }
                 return 0;

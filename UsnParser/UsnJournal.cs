@@ -22,8 +22,6 @@ namespace UsnParser
         private readonly bool _isChangeJournalSupported;
         private readonly SafeFileHandle _volumeRootHandle;
         private readonly LRUCache<ulong, string> _lruCache;
-        private int _missCount;
-        public int _totalDirCount;
 
         public string VolumeName { get; }
 
@@ -275,7 +273,6 @@ namespace UsnParser
                                 FILE_INFORMATION_CLASS.FileNameInformation);
                             if (status == STATUS_SUCCESS)
                             {
-                                _missCount++;
                                 var nameInfo = (FILE_NAME_INFORMATION*)pathBuffer;
 
                                 parentPath = Path.Join(VolumeName.TrimEnd(Path.DirectorySeparatorChar), nameInfo->FileName.ToString());
@@ -321,9 +318,6 @@ namespace UsnParser
 
         private void Dispose(bool disposing)
         {
-            Console.WriteLine($"totalDirCount={_totalDirCount}, missCount={_missCount}");
-            Console.WriteLine($"Cache miss percent: {_missCount * 100 / (double)_totalDirCount}%");
-
             if (disposing)
                 _volumeRootHandle.Dispose();
         }
