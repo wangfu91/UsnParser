@@ -116,7 +116,7 @@ namespace UsnParser
             // http://www.resilientfilesystem.co.uk/refs-master-file-table
             if (_isReFS)
             {
-                throw new NotSupportedException($"The file system of drive {VolumeName} is ReFS, which does not have a MTF(Master File Table) to search on.");
+                throw new NotSupportedException($"The file system of drive {VolumeName} is ReFS, which does not have a MFT(Master File Table) to search on.");
             }
 
             var options = MasterFileTableEnumerationOptions.Default;
