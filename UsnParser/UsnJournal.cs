@@ -263,11 +263,28 @@ namespace UsnParser
                 if (status == STATUS_SUCCESS)
                 {
                     var pathBufferSize = MAX_PATH;
-                    while (true)
+                    const int MaxStackAllocSize = 1024; // Define a threshold for stack allocation
+                    byte* pathBuffer = null;
+                    IntPtr heapBuffer = IntPtr.Zero;
+                    try
                     {
-                        var pathBuffer = Marshal.AllocHGlobal(pathBufferSize);
-                        try
+                        while (true)
                         {
+                            if (pathBufferSize <= MaxStackAllocSize)
+                            {
+                                // Allocate the buffer on the stack
+#pragma warning disable CA2014
+                                var stackBuffer = stackalloc byte[pathBufferSize];
+#pragma warning restore CA2014
+                                pathBuffer = stackBuffer;
+                            }
+                            else
+                            {
+                                // Allocate the buffer on the heap
+                                heapBuffer = Marshal.AllocHGlobal(pathBufferSize);
+                                pathBuffer = (byte*)heapBuffer;
+                            }
+
                             status = NtQueryInformationFile(
                                 fileHandle,
                                 ioStatusBlock,
@@ -300,15 +317,19 @@ namespace UsnParser
                                 return false;
                             }
                         }
-                        finally
+                    }
+                    finally
+                    {
+                        if (heapBuffer != IntPtr.Zero)
                         {
-                            Marshal.FreeHGlobal(pathBuffer);
+                            Marshal.FreeHGlobal(heapBuffer);
+
                         }
                     }
                 }
-            }
 
-            return false;
+                return false;
+            }
         }
 
         #region IDisposable
@@ -328,4 +349,5 @@ namespace UsnParser
         #endregion
     }
 }
+
 

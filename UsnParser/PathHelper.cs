@@ -20,8 +20,8 @@ namespace UsnParser
             Console.WriteLine($"path = {0}", path ?? "");
             */
 
-            //var path = @"D:\test.pdf";
-            var path = @"D:\Users";
+            //var path = @"D:\tmp\input.docx";
+            var path = @"D:\tmp";
             var fid = GetFileIdFromPath(path);
             Console.WriteLine($"fid = {fid}");
         }
@@ -90,25 +90,18 @@ namespace UsnParser
                 {
                     if (status == STATUS_SUCCESS)
                     {
-                        var internalInfoPtr = Marshal.AllocHGlobal(sizeof(FILE_INTERNAL_INFORMATION));
-                        try
-                        {
-                            status = NtQueryInformationFile(
-                                fileHandle,
-                                ioStatusBlock,
-                                internalInfoPtr,
-                                (uint)sizeof(FILE_INTERNAL_INFORMATION),
-                                FILE_INFORMATION_CLASS.FileInternalInformation);
+                        FILE_INTERNAL_INFORMATION internalInfo;
 
-                            if (status == STATUS_SUCCESS)
-                            {
-                                var internalInfo = (FILE_INTERNAL_INFORMATION*)internalInfoPtr;
-                                fileId = internalInfo->IndexNumber;
-                            }
-                        }
-                        finally
+                        status = NtQueryInformationFile(
+                            fileHandle,
+                            ioStatusBlock,
+                            &internalInfo,
+                            (uint)sizeof(FILE_INTERNAL_INFORMATION),
+                            FILE_INFORMATION_CLASS.FileInternalInformation);
+
+                        if (status == STATUS_SUCCESS)
                         {
-                            Marshal.FreeHGlobal(internalInfoPtr);
+                            fileId = internalInfo.IndexNumber;
                         }
                     }
                 }
@@ -155,11 +148,26 @@ namespace UsnParser
                 if (status == STATUS_SUCCESS)
                 {
                     var pathBufferSize = MAX_PATH;
-                    while (true)
+                    const int MaxStackAllocSize = 1024; // Define a threshold for stack allocation
+                    byte* pathBuffer = null;
+                    IntPtr heapBuffer = IntPtr.Zero;
+                    try
                     {
-                        var pathBuffer = Marshal.AllocHGlobal(pathBufferSize);
-                        try
+                        while (true)
                         {
+                            if (pathBufferSize <= MaxStackAllocSize)
+                            {
+                                // Allocate the buffer on the stack
+                                var stackBuffer = stackalloc byte[pathBufferSize];
+                                pathBuffer = stackBuffer;
+                            }
+                            else
+                            {
+                                // Allocate the buffer on the heap
+                                heapBuffer = Marshal.AllocHGlobal(pathBufferSize);
+                                pathBuffer = (byte*)heapBuffer;
+                            }
+
                             status = NtQueryInformationFile(
                                 fileHandle,
                                 ioStatusBlock,
@@ -181,16 +189,20 @@ namespace UsnParser
                             }
 
                             break;
+
                         }
-                        finally
+                    }
+                    finally
+                    {
+                        if (heapBuffer != IntPtr.Zero)
                         {
-                            Marshal.FreeHGlobal(pathBuffer);
+                            Marshal.FreeHGlobal(heapBuffer);
                         }
                     }
                 }
-            }
 
-            return path;
+                return path;
+            }
         }
     }
 }

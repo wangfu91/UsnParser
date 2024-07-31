@@ -29,12 +29,12 @@ namespace UsnParser.Native
         /// <param name="fileInformationClass">Specifies the type of information to be returned about the file, in the buffer that FileInformation points to. </param>
         /// <returns></returns>
         [DllImport("ntdll.dll", SetLastError = true)]
-        internal static extern int NtQueryInformationFile(
-           SafeFileHandle fileHandle,
-           in IO_STATUS_BLOCK ioStatusBlock,
-           IntPtr fileInformation,
-           uint length,
-           FILE_INFORMATION_CLASS fileInformationClass);
+        internal static unsafe extern int NtQueryInformationFile(
+            SafeFileHandle fileHandle,
+            in IO_STATUS_BLOCK ioStatusBlock,
+            void* fileInformation,
+            uint length,
+            FILE_INFORMATION_CLASS fileInformationClass);
 
         /// <summary>
         /// Creates a new file or directory, or opens an existing file, device, directory, or volume
