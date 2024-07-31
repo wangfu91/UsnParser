@@ -7,14 +7,11 @@ using FileAccess = UsnParser.Native.FileAccess;
 using UsnParser.Native;
 using Microsoft.Win32.SafeHandles;
 using System.ComponentModel;
-using System.Text;
 
 namespace UsnParser
 {
     internal static class PathHelper
     {
-        private const string ExtendedPathPrefix = @"\\?\";
-
         public static void Main(string[] args)
         {
             /*
@@ -23,7 +20,8 @@ namespace UsnParser
             Console.WriteLine($"path = {0}", path ?? "");
             */
 
-            var path = @"D:\test.pdf";
+            //var path = @"D:\test.pdf";
+            var path = @"D:\Users";
             var fid = GetFileIdFromPath(path);
             Console.WriteLine($"fid = {fid}");
         }
@@ -52,11 +50,14 @@ namespace UsnParser
 
         public unsafe static long? GetFileIdFromPath(string filePath)
         {
-            filePath = ExtendedPathPrefix + filePath;
+            // Add the '\??\' prefix to convert the it to NT path   
+            filePath = @"\??\" + filePath;
+
             fixed (char* c = &MemoryMarshal.GetReference(filePath.AsSpan()))
             {
-                UNICODE_STRING unicodeString = new UNICODE_STRING
+                var unicodeString = new UNICODE_STRING
                 {
+                    // Note that the Lenght and MaximumLenght are in bytes.
                     Length = checked((ushort)(filePath.Length * sizeof(char))),
                     MaximumLength = checked((ushort)((filePath.Length + 1) * sizeof(char))),
                     Buffer = (IntPtr)c
@@ -74,14 +75,14 @@ namespace UsnParser
 
                 var status = NtCreateFile(
                     handle: out var fileHandle,
-                    access: FileAccess.GENERIC_READ,
+                    access: FileAccess.FILE_READ_ATTRIBUTES,
                     objectAttributes: objAttributes,
                     ioStatusBlock: out var ioStatusBlock,
                     allocationSize: 0,
                     fileAttributes: 0,
                     shareAccess: FileShare.ReadWrite | FileShare.Delete,
                     createDisposition: NtFileMode.FILE_OPEN,
-                    createOptions: NtFileCreateOptions.FILE_NON_DIRECTORY_FILE,
+                    createOptions: 0, // Set to zero, so that it can work for both file and directory.
                     eaBuffer: IntPtr.Zero,
                     eaLength: 0);
 
