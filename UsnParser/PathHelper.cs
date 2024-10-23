@@ -48,7 +48,7 @@ namespace UsnParser
             return rootHandle;
         }
 
-        public unsafe static long? GetFileIdFromPath(string filePath)
+        public unsafe static long GetFileIdFromPath(string filePath)
         {
             // Add the '\??\' prefix to convert the it to NT path   
             filePath = @"\??\" + filePath;
