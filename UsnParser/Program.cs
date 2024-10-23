@@ -20,8 +20,8 @@ namespace UsnParser
     [HelpOption("-h|--help")]
     internal class UsnParser
     {
-        //public static int Main(string[] args)
-        //    => CommandLineApplication.Execute<UsnParser>(args);
+        public static int Main(string[] args)
+            => CommandLineApplication.Execute<UsnParser>(args);
 
         private static string GetVersion() =>
             typeof(UsnParser).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? "Unknown";

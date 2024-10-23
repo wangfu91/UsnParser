@@ -12,20 +12,6 @@ namespace UsnParser
 {
     internal static class PathHelper
     {
-        public static void Main(string[] args)
-        {
-            /*
-            var fid = 0x0000000000000000004900000006c2f5;
-            var path = PathFromFid("D:", fid);
-            Console.WriteLine($"path = {0}", path ?? "");
-            */
-
-            //var path = @"D:\tmp\input.docx";
-            var path = @"D:\tmp";
-            var fid = GetFileIdFromPath(path);
-            Console.WriteLine($"fid = {fid}");
-        }
-
         private static SafeFileHandle GetVolumeRootHandle(DriveInfo driveInfo)
         {
             var vol = string.Concat(@"\\.\", driveInfo.Name.TrimEnd('\\'));
