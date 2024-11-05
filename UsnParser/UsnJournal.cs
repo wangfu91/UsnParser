@@ -168,7 +168,7 @@ namespace UsnParser
 
             var rootHandle = CreateFile(
                 vol,
-                FileAccess.GENERIC_READ | FileAccess.GENERIC_WRITE,
+                FileAccess.GENERIC_READ,
                 FileShare.ReadWrite,
                 default,
                 FileMode.Open,
@@ -247,7 +247,7 @@ namespace UsnParser
 
             var status = NtCreateFile(
                 out var fileHandle,
-                FileAccess.GENERIC_READ | FileAccess.GENERIC_WRITE,
+                FileAccess.GENERIC_READ,
                 objAttributes,
                 out var ioStatusBlock,
                 0,
