@@ -1,9 +1,15 @@
 # Windows USN Change Journal Parser 🚀
 
-A command utility for NTFS/ReFS to search the MFT & monitor the changes of USN Journal.
+A command-line utility for NTFS/ReFS to search the MFT and monitor changes in the USN Journal.
 
 > **Note:**
-> 🦀 **There is also a Rust port here: ([usn-parser-rs](https://github.com/wangfu91/usn-parser-rs)) which is more performant and uses significantly less memory.**
+> 🦀 **I've also created a Rust port: [usn-parser-rs](https://github.com/wangfu91/usn-parser-rs), which is more performant and uses significantly less memory.**
+
+---
+
+**This project requires [.NET 8](https://dotnet.microsoft.com/en-us/download/dotnet/8.0) to be installed to build and run.**
+
+---
 
 ## 📦 Download
 
@@ -39,12 +45,12 @@ UsnParser read D: -f Report.docx
 ```
 
 ```bash
-# 👀 Monitor realtime USN records of volume C.
+# 👀 Monitor real-time USN records of volume C.
 UsnParser monitor C: 
 ```
 
 ```bash
-# 📝 Monitor realtime USN records of volume C with a filter for txt files whose name starts with "abc".
+# 📝 Monitor real-time USN records of volume C with a filter for txt files whose name starts with "abc".
 UsnParser monitor C: -f abc*.txt 
 ```
 
@@ -52,4 +58,22 @@ UsnParser monitor C: -f abc*.txt
 
 * [DotNet.Glob](https://github.com/dazinator/DotNet.Glob)
 * [McMaster.Extensions.CommandLineUtils](https://github.com/natemcmaster/CommandLineUtils)
+
+---
+
+## 🤝 Contributing
+
+Contributions, issues, and feature requests are welcome! Feel free to open an issue or submit a pull request.
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a pull request
+
+---
+
+## 📄 License
+
+This project is licensed under the MIT License. See the [LICENSE](./LICENSE) file for details.
 
