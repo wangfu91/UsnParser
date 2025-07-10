@@ -26,9 +26,8 @@ namespace UsnParser
         private static string GetVersion() =>
             typeof(UsnParser).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? "Unknown";
 
-#pragma warning disable CA1822 // Mark members as static
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Performance", "CA1822:Mark members as static", Justification = "This method is required by the CommandLineUtils framework as an instance method for command execution, even though it does not access instance data. Marking it as static would break the expected signature.")]
         private int OnExecute(CommandLineApplication app)
-#pragma warning restore CA1822 // Mark members as static
         {
             // This shows help even if the --help option isn't specified
             app.ShowHelp();
