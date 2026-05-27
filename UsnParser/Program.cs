@@ -17,7 +17,7 @@ internal static class Program
         rootCmd.Subcommands.Add(BuildCommand("monitor", "Monitor real-time USN journal changes",
             static (journal, filterOptions, ct) =>
             {
-                foreach (var entry in journal.MonitorLiveUsn(journal.JournalInfo.UsnJournalID, journal.JournalInfo.NextUsn, filterOptions))
+                foreach (var entry in journal.MonitorLiveUsn(journal.JournalInfo.UsnJournalID, journal.JournalInfo.NextUsn, filterOptions, ct))
                 {
                     if (ct.IsCancellationRequested) return -1;
                     ConsoleExtension.PrintUsnEntryFull(journal, entry);
@@ -96,6 +96,10 @@ internal static class Program
             {
                 Console.CancelKeyPress -= cancelHandler;
             }
+        }
+        catch (OperationCanceledException)
+        {
+            return -1;
         }
         catch (Exception ex)
         {

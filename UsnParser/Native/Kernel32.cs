@@ -44,6 +44,11 @@ namespace UsnParser.Native
         [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
         internal static partial void ZeroMemory(IntPtr Destination, int Length);
 
+        [LibraryImport("kernel32.dll", SetLastError = true)]
+        [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        internal static partial bool CancelIoEx(SafeFileHandle hFile, nint lpOverlapped);
+
         /// <summary>
         /// Sends the control code 'dwIoControlCode' to the device driver specified by 'hDevice'.
         /// </summary>

@@ -1,6 +1,7 @@
 ﻿using Microsoft.Win32.SafeHandles;
 using System.ComponentModel;
 using System.Runtime.InteropServices;
+using System.Threading;
 using UsnParser.Native;
 using static UsnParser.Enumeration.BaseEnumerable;
 using static UsnParser.Native.Kernel32;
@@ -13,14 +14,20 @@ namespace UsnParser.Enumeration
         private long _nextStartUsn;
         private readonly ulong _usnJournalId;
         private readonly FindPredicate? _shouldIncludePredicate;
+        private readonly CancellationToken _cancellationToken;
+        private readonly CancellationTokenRegistration _cancellationRegistration;
 
-        public ChangeJournalEnumerator(SafeFileHandle volumeRootHandle, ulong usnJournalId, ChangeJournalEnumerationOptions options, FindPredicate? shouldIncludePredicate)
+        public ChangeJournalEnumerator(SafeFileHandle volumeRootHandle, ulong usnJournalId, ChangeJournalEnumerationOptions options, FindPredicate? shouldIncludePredicate, CancellationToken cancellationToken = default)
             : base(volumeRootHandle, options.BufferSize)
         {
             _usnJournalId = usnJournalId;
             _options = options;
             _nextStartUsn = options.StartUsn;
             _shouldIncludePredicate = shouldIncludePredicate;
+            _cancellationToken = cancellationToken;
+            _cancellationRegistration = cancellationToken.Register(
+                static state => CancelIoEx((SafeFileHandle)state!, nint.Zero),
+                volumeRootHandle);
         }
 
         private unsafe bool GetData()
@@ -51,6 +58,11 @@ namespace UsnParser.Enumeration
                 if (!success)
                 {
                     var error = Marshal.GetLastWin32Error();
+                    if (error == (int)Win32Error.ERROR_OPERATION_ABORTED)
+                    {
+                        _cancellationToken.ThrowIfCancellationRequested();
+                        return false;
+                    }
                     if (error != (int)Win32Error.ERROR_HANDLE_EOF)
                     {
                         throw new Win32Exception(error);
@@ -95,5 +107,14 @@ namespace UsnParser.Enumeration
 
         protected override bool ShouldIncludeEntry(UsnEntry entry) =>
             _shouldIncludePredicate?.Invoke(entry) ?? true;
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                _cancellationRegistration.Dispose();
+            }
+            base.Dispose(disposing);
+        }
     }
 }

@@ -137,7 +137,7 @@ namespace UsnParser
             };
         }
 
-        public IEnumerable<UsnEntry> MonitorLiveUsn(ulong usnJournalId, long startUsn, FilterOptions filterOptions)
+        public IEnumerable<UsnEntry> MonitorLiveUsn(ulong usnJournalId, long startUsn, FilterOptions filterOptions, CancellationToken cancellationToken = default)
         {
             var options = new ChangeJournalEnumerationOptions
             {
@@ -146,7 +146,7 @@ namespace UsnParser
                 ReturnOnlyOnClose = false,
                 StartUsn = startUsn,
             };
-            return new ChangeJournalEnumerable(_volumeRootHandle, usnJournalId, options, Filter(filterOptions));
+            return new ChangeJournalEnumerable(_volumeRootHandle, usnJournalId, options, Filter(filterOptions), cancellationToken);
         }
 
         public IEnumerable<UsnEntry> EnumerateUsnEntries(ulong usnJournalId, FilterOptions filterOptions)

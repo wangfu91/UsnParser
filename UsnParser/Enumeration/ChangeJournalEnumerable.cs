@@ -9,17 +9,19 @@ namespace UsnParser.Enumeration
         private ChangeJournalEnumerator? _enumerator;
         private readonly ulong _changeJournalId;
         private readonly ChangeJournalEnumerationOptions _options;
+        private readonly CancellationToken _cancellationToken;
 
-        public ChangeJournalEnumerable(SafeFileHandle volumeRootHandle, ulong usnJournalId, ChangeJournalEnumerationOptions? options = null, FindPredicate? shouldIncludePredicate = null)
+        public ChangeJournalEnumerable(SafeFileHandle volumeRootHandle, ulong usnJournalId, ChangeJournalEnumerationOptions? options = null, FindPredicate? shouldIncludePredicate = null, CancellationToken cancellationToken = default)
             : base(volumeRootHandle, shouldIncludePredicate)
         {
             _changeJournalId = usnJournalId;
             _options = options ?? ChangeJournalEnumerationOptions.Default;
+            _cancellationToken = cancellationToken;
         }
 
         public override IEnumerator<UsnEntry> GetEnumerator()
         {
-            return Interlocked.Exchange(ref _enumerator, null) ?? new ChangeJournalEnumerator(_volumeRootHandle, _changeJournalId, _options, _shouldIncludePredicate);
+            return Interlocked.Exchange(ref _enumerator, null) ?? new ChangeJournalEnumerator(_volumeRootHandle, _changeJournalId, _options, _shouldIncludePredicate, _cancellationToken);
         }
     }
 }
