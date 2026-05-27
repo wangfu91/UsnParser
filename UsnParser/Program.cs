@@ -1,163 +1,120 @@
 ﻿using System;
+using System.CommandLine;
 using System.ComponentModel;
-using System.ComponentModel.DataAnnotations;
 using System.IO;
-using System.Reflection;
 using System.Security.Principal;
 using System.Threading;
-using McMaster.Extensions.CommandLineUtils;
 using UsnParser.Extensions;
 using UsnParser.Native;
 
-namespace UsnParser
+namespace UsnParser;
+
+internal static class Program
 {
-    [Command(
-        Name = "UsnParser",
-        FullName = "NTFS USN Journal parser",
-        Description = "A command utility for NTFS to search the MFT & monitoring the changes of USN Journal.")]
-    [VersionOptionFromMember(MemberName = nameof(GetVersion))]
-    [Subcommand(typeof(MonitorCommand), typeof(SearchCommand), typeof(ReadCommand))]
-    [HelpOption("-h|--help")]
-    internal class UsnParser
+    public static int Main(string[] args)
     {
-        public static int Main(string[] args)
-            => CommandLineApplication.Execute<UsnParser>(args);
-
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Performance", "CA1822:Mark members as static", Justification = "Source generator accesses this as an instance member via VersionOptionFromMember.")]
-        internal string GetVersion =>
-            typeof(UsnParser).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? "Unknown";
-
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Performance", "CA1822:Mark members as static", Justification = "This method is required by the CommandLineUtils framework as an instance method for command execution, even though it does not access instance data. Marking it as static would break the expected signature.")]
-        internal int OnExecute(CommandLineApplication app)
-        {
-            // This shows help even if the --help option isn't specified
-            app.ShowHelp();
-            return 1;
-        }
+        var rootCmd = new RootCommand("A command utility for NTFS to search the MFT & monitoring the changes of USN Journal.");
+        rootCmd.Subcommands.Add(BuildCommand("monitor", "Monitor real-time USN journal changes",
+            static (journal, filterOptions, ct) =>
+            {
+                foreach (var entry in journal.MonitorLiveUsn(journal.JournalInfo.UsnJournalID, journal.JournalInfo.NextUsn, filterOptions))
+                {
+                    if (ct.IsCancellationRequested) return -1;
+                    ConsoleExtension.PrintUsnEntryFull(journal, entry);
+                }
+                return 0;
+            }));
+        rootCmd.Subcommands.Add(BuildCommand("search", "Search the Master File Table",
+            static (journal, filterOptions, ct) =>
+            {
+                foreach (var entry in journal.EnumerateMasterFileTable(journal.JournalInfo.NextUsn, filterOptions))
+                {
+                    if (ct.IsCancellationRequested) return -1;
+                    ConsoleExtension.PrintUsnEntryBasic(journal, entry);
+                }
+                return 0;
+            }));
+        rootCmd.Subcommands.Add(BuildCommand("read", "Read history USN journal entries",
+            static (journal, filterOptions, ct) =>
+            {
+                foreach (var entry in journal.EnumerateUsnEntries(journal.JournalInfo.UsnJournalID, filterOptions))
+                {
+                    if (ct.IsCancellationRequested) return -1;
+                    ConsoleExtension.PrintUsnEntryFull(journal, entry);
+                }
+                return 0;
+            }));
+        return rootCmd.Parse(args).Invoke();
     }
 
-    [HelpOption("-h|--help", Inherited = true)]
-    internal abstract class SubCommandBase
+    private static Command BuildCommand(string name, string description, Func<UsnJournal, FilterOptions, CancellationToken, int> run)
     {
-        [Argument(0, Description = "Volume name, e.g. C: <Required>")]
-        [Required]
-        public string Volume { get; set; } = string.Empty;
+        var volumeArg = new Argument<string>("volume") { Description = "Volume name, e.g. C: <Required>" };
 
-        [Option("-f|--filter", Description = "Filter the result with keyword, wildcards are permitted")]
-        public string? Keyword { get; set; }
+        var filterOpt = new Option<string?>("--filter") { Description = "Filter the result with keyword, wildcards are permitted" };
+        filterOpt.Aliases.Add("-f");
 
-        [Option("-fo|--FileOnly", Description = "Only show the file entries")]
-        public bool FileOnly { get; set; }
+        var fileOnlyOpt = new Option<bool>("--FileOnly") { Description = "Only show the file entries" };
+        fileOnlyOpt.Aliases.Add("-fo");
 
-        [Option("-do|--DirectoryOnly", Description = "Only show the directory entries")]
-        public bool DirectoryOnly { get; set; }
+        var dirOnlyOpt = new Option<bool>("--DirectoryOnly") { Description = "Only show the directory entries" };
+        dirOnlyOpt.Aliases.Add("-do");
 
-        [Option("--caseSensitive", Description = "Use case-sensitive matching, default is false")]
-        public bool CaseSensitive { get; set; }
+        var caseSensitiveOpt = new Option<bool>("--caseSensitive") { Description = "Use case-sensitive matching, default is false" };
 
-        protected CancellationToken _cancellationToken;
+        var cmd = new Command(name, description) { volumeArg, filterOpt, fileOnlyOpt, dirOnlyOpt, caseSensitiveOpt };
+        cmd.SetAction(r => ExecuteCore(
+            r.GetValue(volumeArg)!,
+            new FilterOptions(r.GetValue(filterOpt), r.GetValue(fileOnlyOpt), r.GetValue(dirOnlyOpt), r.GetValue(caseSensitiveOpt)),
+            run));
+        return cmd;
+    }
 
-        protected readonly IConsole _console = PhysicalConsole.Singleton;
-
-        protected FilterOptions _filterOptions = FilterOptions.Default;
-
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "Top-level CLI handler — all unexpected exceptions are surfaced to the user as error messages.")]
-        protected int OnExecute(CommandLineApplication app)
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "Top-level CLI handler — all unexpected exceptions are surfaced to the user as error messages.")]
+    private static int ExecuteCore(string volume, FilterOptions filterOptions, Func<UsnJournal, FilterOptions, CancellationToken, int> run)
+    {
+        try
         {
+            using var cts = new CancellationTokenSource();
+            ConsoleCancelEventHandler cancelHandler = (_, e) =>
+            {
+                e.Cancel = true;
+                Console.WriteLine("Ctrl+C is pressed, exiting...");
+                cts.Cancel();
+            };
+            Console.CancelKeyPress += cancelHandler;
             try
             {
-                var cts = new CancellationTokenSource();
-                _cancellationToken = cts.Token;
-
-                _console.CancelKeyPress += (o, e) =>
-                {
-                    _console.WriteLine("Ctrl+C is pressed, exiting...");
-                    cts.Cancel();
-                };
-
-                if (!OperatingSystem.IsWindows())
-                {
-                    _console.PrintError($"This tool only support Windows, since it used NTFS specific features.");
-                    return -1;
-                }
-
-                var driveInfo = new DriveInfo(Volume);
+                var driveInfo = new DriveInfo(volume);
                 using var usnJournal = new UsnJournal(driveInfo);
 #if DEBUG
-                _console.PrintUsnJournalData(usnJournal.JournalInfo);
+                ConsoleExtension.PrintUsnJournalData(usnJournal.JournalInfo);
 #endif
-
-                _filterOptions = new FilterOptions(Keyword, FileOnly, DirectoryOnly, CaseSensitive);
-                return Run(usnJournal);
+                return run(usnJournal, filterOptions, cts.Token);
             }
-            catch (Exception ex)
+            finally
             {
-                _console.PrintError(ex.Message);
-
-                if (ex is Win32Exception win32Ex && win32Ex.NativeErrorCode == (int)Win32Error.ERROR_ACCESS_DENIED && !HasAdministratorPrivilege())
-                {
-                    _console.PrintError($"You need system administrator privileges to access the USN journal of drive {Volume.ToUpper()}.");
-                }
-
-                return -1;
+                Console.CancelKeyPress -= cancelHandler;
             }
         }
-
-        protected abstract int Run(UsnJournal usnJournal);
-
-        private static bool HasAdministratorPrivilege()
+        catch (Exception ex)
         {
-            using var identity = WindowsIdentity.GetCurrent();
-            var principal = new WindowsPrincipal(identity);
-            return principal.IsInRole(WindowsBuiltInRole.Administrator);
+            ConsoleExtension.PrintError(ex.Message);
+            if (ex is Win32Exception win32Ex
+                && win32Ex.NativeErrorCode == (int)Win32Error.ERROR_ACCESS_DENIED
+                && !HasAdministratorPrivilege())
+            {
+                ConsoleExtension.PrintError($"You need system administrator privileges to access the USN journal of drive {volume.ToUpper()}.");
+            }
+            return -1;
         }
     }
 
-    [Command("monitor", Description = "Monitor real-time USN journal changes")]
-    internal class MonitorCommand : SubCommandBase
+    private static bool HasAdministratorPrivilege()
     {
-        protected override int Run(UsnJournal usnJournal)
-        {
-            var usnEntries = usnJournal.MonitorLiveUsn(usnJournal.JournalInfo.UsnJournalID, usnJournal.JournalInfo.NextUsn, _filterOptions);
-            foreach (var entry in usnEntries)
-            {
-                if (_cancellationToken.IsCancellationRequested) return -1;
-
-                _console.PrintUsnEntryFull(usnJournal, entry);
-            }
-            return 0;
-        }
-    }
-
-    [Command("search", Description = "Search the Master File Table")]
-    internal class SearchCommand : SubCommandBase
-    {
-        protected override int Run(UsnJournal usnJournal)
-        {
-            var usnEntries = usnJournal.EnumerateMasterFileTable(usnJournal.JournalInfo.NextUsn, _filterOptions);
-            foreach (var entry in usnEntries)
-            {
-                if (_cancellationToken.IsCancellationRequested) return -1;
-
-                _console.PrintUsnEntryBasic(usnJournal, entry);
-            }
-            return 0;
-        }
-    }
-
-    [Command("read", Description = "Read history USN journal entries")]
-    internal class ReadCommand : SubCommandBase
-    {
-        protected override int Run(UsnJournal usnJournal)
-        {
-            var usnEntries = usnJournal.EnumerateUsnEntries(usnJournal.JournalInfo.UsnJournalID, _filterOptions);
-            foreach (var entry in usnEntries)
-            {
-                if (_cancellationToken.IsCancellationRequested) return -1;
-
-                _console.PrintUsnEntryFull(usnJournal, entry);
-            }
-            return 0;
-        }
+        using var identity = WindowsIdentity.GetCurrent();
+        var principal = new WindowsPrincipal(identity);
+        return principal.IsInRole(WindowsBuiltInRole.Administrator);
     }
 }
+

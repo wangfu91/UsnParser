@@ -1,5 +1,4 @@
 ﻿using DotNet.Globbing;
-using McMaster.Extensions.CommandLineUtils;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -58,9 +57,9 @@ namespace UsnParser
             {
                 if (ex.NativeErrorCode == (int)Win32Error.ERROR_JOURNAL_NOT_ACTIVE)
                 {
-                    var shouldCreate = Prompt.GetYesNo(
-                            $"The change journal of volume {VolumeName} is not active, active it now?",
-                            defaultAnswer: true);
+                    Console.Write($"The change journal of volume {VolumeName} is not active, active it now? [Y/n]: ");
+                    var input = Console.ReadLine()?.Trim();
+                    var shouldCreate = string.IsNullOrEmpty(input) || input.Equals("y", StringComparison.OrdinalIgnoreCase);
 
                     if (shouldCreate)
                     {
