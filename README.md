@@ -7,7 +7,7 @@ A command-line utility for NTFS/ReFS to search the MFT and monitor changes in th
 
 ---
 
-**This project requires [.NET 8](https://dotnet.microsoft.com/en-us/download/dotnet/8.0) to be installed to build and run.**
+**This project requires [.NET 10](https://dotnet.microsoft.com/en-us/download/dotnet/10.0) to be installed to build and run.**
 
 ---
 
@@ -53,13 +53,6 @@ UsnParser monitor C:
 # 📝 Monitor real-time USN records of volume C with a filter for txt files whose name starts with "abc".
 UsnParser monitor C: -f abc*.txt 
 ```
-
-## 📚 Dependencies 
-
-* [DotNet.Glob](https://github.com/dazinator/DotNet.Glob)
-* [McMaster.Extensions.CommandLineUtils](https://github.com/natemcmaster/CommandLineUtils)
-
----
 
 ## 🤝 Contributing
 
