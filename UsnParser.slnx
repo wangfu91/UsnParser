@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/Solution Items/">
+    <File Path=".editorconfig" />
+    <File Path="Publish.ps1" />
+    <File Path="README.md" />
+  </Folder>
+  <Project Path="UsnParser/UsnParser.csproj" />
+</Solution>
