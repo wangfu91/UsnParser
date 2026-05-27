@@ -29,6 +29,7 @@ namespace UsnParser.Native
         /// <param name="fileInformationClass">Specifies the type of information to be returned about the file, in the buffer that FileInformation points to. </param>
         /// <returns></returns>
         [DllImport("ntdll.dll", SetLastError = true)]
+        [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
         internal static extern int NtQueryInformationFile(
            SafeFileHandle fileHandle,
            in IO_STATUS_BLOCK ioStatusBlock,
@@ -52,6 +53,7 @@ namespace UsnParser.Native
         /// <param name="eaLength">Length of the EA buffer</param>
         /// <returns>either STATUS_SUCCESS or an appropriate error status. If it returns an error status, the caller can find more information about the cause of the failure by checking the IoStatusBlock</returns>
         [LibraryImport("ntdll.dll", SetLastError = true)]
+        [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
         internal static partial int NtCreateFile(
             out SafeFileHandle handle,
             FileAccess access,

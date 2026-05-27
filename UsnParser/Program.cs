@@ -23,6 +23,7 @@ namespace UsnParser
         public static int Main(string[] args)
             => CommandLineApplication.Execute<UsnParser>(args);
 
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Performance", "CA1822:Mark members as static", Justification = "Source generator accesses this as an instance member via VersionOptionFromMember.")]
         internal string GetVersion =>
             typeof(UsnParser).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? "Unknown";
 
@@ -60,6 +61,7 @@ namespace UsnParser
 
         protected FilterOptions _filterOptions = FilterOptions.Default;
 
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "Top-level CLI handler — all unexpected exceptions are surfaced to the user as error messages.")]
         protected int OnExecute(CommandLineApplication app)
         {
             try

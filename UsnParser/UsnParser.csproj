@@ -13,6 +13,7 @@
         <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
         <InvariantGlobalization>true</InvariantGlobalization>
         <IlcOptimizationPreference>Speed</IlcOptimizationPreference>
+        <NoWarn>$(NoWarn);IL2026</NoWarn>
     </PropertyGroup>
 
     <ItemGroup>

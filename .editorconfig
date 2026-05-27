@@ -144,6 +144,62 @@ dotnet_diagnostic.CA1855.severity = warning
 dotnet_diagnostic.SYSLIB1054.severity = suggestion
 dotnet_diagnostic.CA1507.severity = warning
 csharp_style_prefer_primary_constructors = true:suggestion
+
+# Suppressed: Native/Win32 interop types intentionally use SCREAMING_SNAKE_CASE and duplicate enum values
+dotnet_diagnostic.CA1707.severity = none
+dotnet_diagnostic.CA1515.severity = none
+dotnet_diagnostic.CA1069.severity = none
+
+# Suppressed: Win32/P-Invoke interop design — uint is the correct underlying type,
+# [Flags] enums intentionally have composite/alias values, sequential enums don't need [Flags] or None=0,
+# and P/Invoke structs are value-compared only by bit-equality
+dotnet_diagnostic.CA1028.severity = none
+dotnet_diagnostic.CA2217.severity = none
+dotnet_diagnostic.CA1027.severity = none
+dotnet_diagnostic.CA1008.severity = none
+dotnet_diagnostic.CA1815.severity = none
+
+# Suppressed: Win32 API type names (ObjectAttribute, FileFlagsAndAttributes) must match
+# the platform SDK naming conventions and cannot be renamed
+dotnet_diagnostic.CA1711.severity = none
+
+# Suppressed: redundant with <Nullable>enable</Nullable> — null-state analysis already
+# enforces non-null at call sites via the type system
+dotnet_diagnostic.CA1062.severity = none
+
+# Suppressed: protected fields in abstract enumeration base classes are intentional
+dotnet_diagnostic.CA1051.severity = none
 dotnet_diagnostic.IL3050.severity = error
 dotnet_diagnostic.IL3051.severity = error
 dotnet_diagnostic.IL3056.severity = error
+dotnet_diagnostic.IL2026.severity = error
+dotnet_diagnostic.IL2027.severity = error
+
+# CA perf rules new in .NET 8/9/10
+dotnet_diagnostic.CA1856.severity = error
+dotnet_diagnostic.CA1857.severity = warning
+dotnet_diagnostic.CA1858.severity = warning
+dotnet_diagnostic.CA1859.severity = warning
+dotnet_diagnostic.CA1860.severity = warning
+dotnet_diagnostic.CA1861.severity = warning
+dotnet_diagnostic.CA1862.severity = warning
+dotnet_diagnostic.CA1863.severity = suggestion
+dotnet_diagnostic.CA1864.severity = warning
+dotnet_diagnostic.CA1865.severity = warning
+dotnet_diagnostic.CA1866.severity = warning
+dotnet_diagnostic.CA1867.severity = warning
+dotnet_diagnostic.CA1868.severity = warning
+dotnet_diagnostic.CA1870.severity = warning
+
+# Reliability
+dotnet_diagnostic.CA2000.severity = warning
+dotnet_diagnostic.CA2213.severity = warning
+dotnet_diagnostic.CA2215.severity = warning
+
+# Unused parameters
+dotnet_code_quality_unused_parameters = all:suggestion
+
+# C# 9/11+ pattern style
+csharp_style_prefer_extended_property_pattern = true:suggestion
+csharp_style_prefer_not_pattern = true:suggestion
+csharp_style_prefer_switch_expression = true:suggestion

@@ -22,7 +22,7 @@ namespace UsnParser.Enumeration
 
         object IEnumerator.Current => Current;
 
-        public BaseEnumerator(SafeFileHandle volumeRootHandle, int bufferSize)
+        protected BaseEnumerator(SafeFileHandle volumeRootHandle, int bufferSize)
         {
             _volumeRootHandle = volumeRootHandle;
             _bufferLength = bufferSize;

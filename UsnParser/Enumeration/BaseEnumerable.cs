@@ -9,7 +9,7 @@ namespace UsnParser.Enumeration
         protected readonly SafeFileHandle _volumeRootHandle;
         protected readonly FindPredicate? _shouldIncludePredicate;
 
-        public BaseEnumerable(SafeFileHandle volumeRootHandle, FindPredicate? shouldIncludePredicate = null)
+        protected BaseEnumerable(SafeFileHandle volumeRootHandle, FindPredicate? shouldIncludePredicate = null)
         {
             _volumeRootHandle = volumeRootHandle;
             _shouldIncludePredicate = shouldIncludePredicate;

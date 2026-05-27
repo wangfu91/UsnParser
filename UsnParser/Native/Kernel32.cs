@@ -9,7 +9,7 @@ namespace UsnParser.Native
     {
         internal const uint USN_REASON_MASK_ALL = 0xFFFFFFFF;
 
-        internal const int MAX_PATH = 260; 
+        internal const int MAX_PATH = 260;
 
         // CTL_CODE( DeviceType, Function, Method, Access ) (((DeviceType) << 16) | ((Access) << 14) | ((Function) << 2) | (Method))
         private const uint FILE_DEVICE_FILE_SYSTEM = 0x00000009;
@@ -41,6 +41,7 @@ namespace UsnParser.Native
         /// <param name="Length">The number of bytes to fill with zeros.</param>
         // https://docs.microsoft.com/en-us/windows-hardware/drivers/ddi/content/wdm/nf-wdm-rtlzeromemory
         [LibraryImport("kernel32.dll", EntryPoint = "RtlZeroMemory", SetLastError = false)]
+        [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
         internal static partial void ZeroMemory(IntPtr Destination, int Length);
 
         /// <summary>
@@ -56,6 +57,7 @@ namespace UsnParser.Native
         /// <param name="lpOverlapped">Pointer to an 'OVERLAPPED' structure</param>
         /// <returns></returns>
         [LibraryImport("kernel32.dll", SetLastError = true)]
+        [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
         [return: MarshalAs(UnmanagedType.Bool)]
         internal static partial bool DeviceIoControl(
            SafeFileHandle hDevice,
@@ -81,6 +83,7 @@ namespace UsnParser.Native
         /// <param name="hTemplateFile">IntPtr to a valid handle to a template file with 'GENERIC_READ' access right</param>
         /// <returns>IntPtr handle to the 'lpFileName' file or device or 'INVALID_HANDLE_VALUE'</returns>
         [LibraryImport("kernel32.dll", SetLastError = true, EntryPoint = "CreateFileW", StringMarshalling = StringMarshalling.Utf16)]
+        [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
         internal static partial SafeFileHandle
            CreateFile(
             string lpFileName,
@@ -98,6 +101,7 @@ namespace UsnParser.Native
         /// <param name="lpFileInformation">Out BY_HANDLE_FILE_INFORMATION argument</param>
         /// <returns>'true' if successful, otherwise 'false'</returns>
         [DllImport("kernel32.dll", SetLastError = true)]
+        [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
         [return: MarshalAs(UnmanagedType.Bool)]
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Interoperability", "SYSLIB1054:Use 'LibraryImportAttribute' instead of 'DllImportAttribute' to generate P/Invoke marshalling code at compile time", Justification = "Workaround SYSLIB1051 error")]
         internal static extern bool GetFileInformationByHandle(

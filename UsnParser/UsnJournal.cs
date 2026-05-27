@@ -37,7 +37,7 @@ namespace UsnParser
 
             if (!(isNTFS || _isReFS))
             {
-                throw new Exception($"{_driveInfo.Name} is not an NTFS or ReFS volume, which does not support USN change journal.");
+                throw new InvalidOperationException($"{_driveInfo.Name} is not an NTFS or ReFS volume, which does not support USN change journal.");
             }
 
             _volumeRootHandle = GetVolumeRootHandle();
@@ -319,7 +319,7 @@ namespace UsnParser
             GC.SuppressFinalize(this);
         }
 
-        private void Dispose(bool disposing)
+        protected virtual void Dispose(bool disposing)
         {
             if (disposing)
                 _volumeRootHandle.Dispose();
